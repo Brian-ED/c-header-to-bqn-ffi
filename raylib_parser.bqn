@@ -143,9 +143,9 @@ FunctionInfo ← ⟨
     0‿128⥊"" # desc        # Function description (comment at the end)
     0‿32 ⥊"" # retType     # Return value type
     ↕0       # paramCount  # Number of function parameters
-    0‿max_function_parameters‿32 ⥊""paramType # Parameters type
-    0‿max_function_parameters‿32 ⥊""paramName # Parameters name
-    0‿max_function_parameters‿128⥊""paramDesc # Parameters description
+    0‿max_function_parameters‿32 ⥊"" # paramType # Parameters type
+    0‿max_function_parameters‿32 ⥊"" # paramName # Parameters name
+    0‿max_function_parameters‿128⥊"" # paramDesc # Parameters description
 ⟩
 
 #----------------------------------------------------------------------------------
@@ -170,34 +170,23 @@ funcs ← @
 
 # Get data type and name from a string containing both
 # NOTE: Useful to parse function parameters and struct fields
-static void GetDataTypeAndName(const char *typeName, int typeNameLen, char *type, char *name)
-{
-    for (int k = typeNameLen; k > 0; k--)
-    {
-        if ((typeName[k] == ' ') && (typeName[k - 1] != ','))
-        {
+GetDataTypeAndName←{𝕊typeName:#‿type‿name: # const char *typeName, int typeNameLen, char *type, char *name)
+    break ← 1
+    For (k←≠typeName)‿{𝕊:break∧k>0}‿{𝕊:k-↩1}‿{𝕤
+        ('*'=k⊑typeName)∨(' '=k⊑typeName) ∧ ','≠typeName⊑˜k-1?
+            break↩0
             # Function name starts at this point (and ret type finishes at this point)
-            MemoryCopy(type, typeName, k);
-            MemoryCopy(name, typeName + k + 1, typeNameLen - k - 1);
-            break;
-        }
-        else if (typeName[k] == '*')
-        {
-            MemoryCopy(type, typeName, k + 1);
-            MemoryCopy(name, typeName + k + 1, typeNameLen - k - 1);
-            break;
-        }
-        else if ((typeName[k] == '.') && (typeNameLen == 3)) # Handle varargs ...);
-        {
-            MemoryCopy(type, "...", 3);
-            MemoryCopy(name, "args", 4);
-            break;
-        }
+            k(↑⋈1⊸+⊸↓)typeName
+        ;
+        ('.'=k⊑typeName) ∧ 3=≠typeName? # Handle varargs ...);
+            break↩0
+            "..."‿"args"
+        ;""‿""
     }
 }
 
 # Get comment from a line, do nothing if no comment in line
-static void GetDescription{𝕊line: # str → description (str)
+GetDescription ← {𝕊line: # str → description (str)
     c ← 0
     descStart ← ¯1
     lastSlash ← ¯2
@@ -316,7 +305,6 @@ ParsedData ← {𝕤
 
         # Print callbacks info
         ⋈"  ""callbacks"": ["
-        for (int i = 0; i < callbackCount; i++)
         ¯1⊸↓⌾(¯1⊸⊑)∾{𝕊callback:∾⟨
             ⋈"    {"
             ⋈"      ""name"": """∾callback.name∾""","
@@ -368,35 +356,23 @@ ParsedData ← {𝕤
 lines ← •FLines inFileName
 linesCount ← ≠lines
 
-# Truncate lines
-{𝕤
-    int newCount = -1;
-    For (i←0)‿{𝕊:i<linesCount}‿{𝕊:i+↩1}‿{
-        newCount>¯1? free(lines[i]);
-        TextFindIndex(lines[i], truncAfter)>¯1? newCount ↩ i;
-        ;0
-    }
-    {𝕊:linesCount↩newCount}⍟⊢newCount > -1
-    "Number of truncated text lines: "∾•ParseFloat linesCount
-}⍟⊢0<≠truncAfter
-
 # Defines line indices
-int *defineLines = (int *)malloc(MAX_DEFINES_TO_PARSE*sizeof(int));
+defineLines ← max_defines_to_parse⥊0
 
 # Structs line indices
-int *structLines = (int *)malloc(MAX_STRUCTS_TO_PARSE*sizeof(int));
+structLines ← max_structs_to_parse⥊0
 
 # Aliases line indices
-int *aliasLines = (int *)malloc(MAX_ALIASES_TO_PARSE*sizeof(int));
+aliasLines ← max_aliases_to_parse⥊0
 
 # Enums line indices
-int *enumLines = (int *)malloc(MAX_ENUMS_TO_PARSE*sizeof(int));
+enumLines ← max_enums_to_parse⥊0
 
 # Callbacks line indices
-int *callbackLines = (int *)malloc(MAX_CALLBACKS_TO_PARSE*sizeof(int));
+callbackLines ← max_callbacks_to_parse⥊0
 
 # Function line indices
-int *funcLines = (int *)malloc(MAX_FUNCS_TO_PARSE*sizeof(int));
+funcLines ← max_funcs_to_parse⥊0
 
 # Prepare required lines for parsing
 #----------------------------------------------------------------------------------
@@ -439,11 +415,11 @@ funcLines ← apiDefine⊸(⊣≡≠⊸↑)¨lines
 #----------------------------------------------------------------------------------
 
 # Define info data
-defineIndicies ← {name‿type‿value‿desc‿isHex←↕5}
+defineIndicies ← {name‿type‿value‿desc‿isHex⇐↕5}
 
 defMacro ← "#define"
 
-CheckHex ← ¬·∨´∊⟜(∾⟨'0'+↕10⋄'a'+↕6⋄'A'+↕6⋄"xL.+-"⟩)
+CheckHex ← ¬∨´∘∊⟜"0123456789abcdefABCDEFxL.+-"
 
 defines ← {
     linePtrs ← ↓⟜lines¨/defMacro⊸(⊣≡≠⊸↑)¨∨`∘∊⟜' '‿t⊸/¨lines
@@ -501,8 +477,7 @@ defines ← {
         defineOut value⌾(defineIndicies.value⊸⊑)↩
 
         # Extracting description
-        args←"diw // dwa"
-        desc ← ∨`∘≠⟜' '⊸/args↓˜2+⊑/"//"⍷args
+        desc ← •Show ∨`∘≠⟜' '⊸/args↓˜2+⊑/"//"⍷args
         defineOut desc⌾(defineIndicies.desc⊸⊑)↩
 
         # Parse defines of type UNKNOWN to find calculated numbers
@@ -511,84 +486,64 @@ defines ← {
             largestType ← unknown
             isMath ← 1
 
-            {𝕊c:
-                ch ← c⊑value
+            For (c←0)‿{𝕊:c<≠valuePtr}‿{𝕊:c+↩1}‿{𝕤
+                ch ← c⊑valuePtr
 
                 # Skip operators and whitespace
-                ¬⊑ch∊"()+-*/ "∾tab?
-                    {ch∊'0'+↕10? # Read number operand
-                        isNumber‿isFloat ← 1‿0
-                        break←1
-                        While {𝕊:break∧CheckHex ch}‿{
-                            {𝕊:isFloat↩1}⍟⊢ch='.'
-                            CheckHex ch?
-                                isNumber ↩ 0
-                                break↩0
-                            ;
+                {𝕤
+                    # Read number operand
+                    ∨´ch="0123456789"?
+                    isNumber‿isFloat ← 1‿0
+                    break2 ← 1
+                    {𝕤
+                        {𝕊:isFloat↩1}⍟⊢ch='.'
+                        {𝕊:isNumber↩0⋄break2↩0}⍟CheckHex ch
+                        {𝕤
                             c+↩1
-                            ch↩c⊑value
-                        }
-                        isNumber◶{𝕤
-                            isMath = false;
-                            break;
-                        }‿{
-                            # Found a valid number -> update largestType
-                            int numberType;
-                            if (isFloat) numberType = (value[c - 1] == 'f')? FLOAT_MATH : DOUBLE_MATH;
-                            else numberType = (value[c - 1] == 'L')? LONG_MATH : INT_MATH;
+                            ch↩c⊑valuePtr
+                        }⍟{𝕊:break2}@
+                    }•_while_{𝕊:break2∧¬∨´ch="()*/ "∾@∾@+9}@
+                    ¬◶{𝕤
+                        # Found a valid number -> update largestType
+                        numberType ← (¬isFloat)◶⟨
+                            DOUBLE_MATH‿FLOAT_MATH ⊑˜'f'=⊢
+                            INT_MATH‿LONG_MATH ⊑˜'L'=⊢
+                        ⟩ valuePtr⊑˜c-1
+                        {𝕊:largestType↩numberType}⍟⊢ numberType>largestType
+                    }‿{𝕤
+                        isMath↩0
+                    } isNumber
+                    ;
+                    # Read string operand
+                    operandStart ← c
+                    {𝕊:c+↩1⋄ch↩c⊑valuePtr}•_while_{𝕊:¬∨´ch=" ()+-*/"∾@}@
+                    operandEnd ← c
+                    operandLength ← operandEnd-operandStart
 
-                            if (numberType > largestType) largestType = numberType;
-                        }
-                    ; # Read string operand
-                        int operandStart = c;
-                        while (!((ch == '\0') ||
-                                    (ch == ' ') ||
-                                    (ch == '(') ||
-                                    (ch == ')') ||
-                                    (ch == '+') ||
-                                    (ch == '-') ||
-                                    (ch == '*') ||
-                                    (ch == '/')))
-                        {
-                            c++;
-                            ch = value[c];
-                        }
-                        int operandEnd = c;
-                        int operandLength = operandEnd - operandStart;
-
-                        # Search previous defines for operand
-                        bool foundOperand = false;
-                        for (int previousDefineIndex = 0; previousDefineIndex < defineIndex; previousDefineIndex++)
-                        {
-                            if (IsTextEqual(defines[previousDefineIndex].name, &value[operandStart], operandLength))
-                            {
-                                if ((defines[previousDefineIndex].type >= INT) && (defines[previousDefineIndex].type <= DOUBLE_MATH))
-                                {
-                                    # Found operand and it's a number -> update largestType
-                                    if (defines[previousDefineIndex].type > largestType) largestType = defines[previousDefineIndex].type;
-                                    foundOperand = true;
-                                }
-                                break;
-                            }
-                        }
-                        if (!foundOperand)
-                        {
-                            isMath = false;
-                            breakHappened 1⌾(c⊸⊑)↩ 
-                        }
+                    # Search previous defines for operand
+                    foundOperand ← 0
+                    break1 ← 1
+                    For (previousDefineIndex←0)‿{𝕊:break∧previousDefineIndex<defineIndex}‿{𝕊:previousDefineIndex+↩1}‿{𝕤
+                        defines[previousDefineIndex].name ≡○(operandLength⊸↑) operandStart↓valuePtr?
+                            break1↩0
+                            (≥⟜int∧≤⟜double_math) defines[previousDefineIndex].type?
+                                # Found operand and it's a number -> update largestType
+                                largestType ⌈↩ defines[previousDefineIndex].type
+                                foundOperand ← 1
                     }
-                ;@
-            }¨↕≠defineOut.value
-
-            if (isMath)
-            {
-                # Define is a calculated number -> update type
-                if (largestType == INT) largestType = INT_MATH;
-                else if (largestType == LONG) largestType = LONG_MATH;
-                else if (largestType == FLOAT) largestType = FLOAT_MATH;
-                else if (largestType == DOUBLE) largestType = DOUBLE_MATH;
-                defineOut.type = largestType;
+                    {𝕊:isMath↩0}⍟¬foundOperand
+                }⍟¬∨´ch="()+-*/ "∾@+9
             }
+            {𝕤
+                # Define is a calculated number -> update type
+                largestType ↩ {
+                    𝕩 = int    ? int_math
+                    𝕩 = long   ? long_math
+                    𝕩 = float  ? float_math
+                    𝕩 = double ? double_math
+                } largestType
+                defineOut.type ← largestType
+            }⍟⊢isMath
         }⍟⊢defineOut.type=unknown
 
         defineOut
@@ -597,224 +552,194 @@ defines ← {
 defineCount ← ≠defines
 
 # Structs info data
-structs = (StructInfo *)calloc(MAX_STRUCTS_TO_PARSE, sizeof(StructInfo));
+structs ← max_structs_to_parse ⥊ structInfo
 
-for (int i = 0; i < structCount; i++)
-{
-    char **linesPtr = &lines[structLines[i]];
+For (i←0)‿{𝕊:i<structCount}‿{𝕊:i+↩1}‿{
+    linesPtr ← lines↓˜i⊑structLines
 
     # Parse struct description
-    GetDescription(linesPtr[-1], structs[i].desc);
+    structs[i].desc ↩ GetDescription linesPtr[-1]
 
     # Get struct name: typedef struct name {
-    const int TDS_LEN = 15; # length of "typedef struct "
-    for (int c = TDS_LEN; c < 64 + TDS_LEN; c++)
-    {
-        if ((linesPtr[0][c] == '{') || (linesPtr[0][c] == ' '))
-        {
-            int nameLen = c - TDS_LEN;
-            while (linesPtr[0][TDS_LEN + nameLen - 1] == ' ') nameLen--;
-            MemoryCopy(structs[i].name, &linesPtr[0][TDS_LEN], nameLen);
-            break;
-        }
+    tds_len ← ≠"typedef struct "
+    break←1
+    For (c←tds_len)‿{𝕊:break∧c<64+tds_len}‿{c+↩1}‿{𝕤
+        ∨´linesPtr[0][c]=" {"?
+            nameLen ← c - tds_len
+            {𝕊:nameLen-↩1}•_while_{𝕊:' '=linesPtr[0][tds_len + nameLen - 1]}@
+            structs[i].name ⊢○(nameLen⊸↑)↩ tds_len↓0⊑linesPtr
+            break↩0
     }
 
     # Get struct fields and count them -> fields finish with ;
-    int l = 1;
-    while (linesPtr[l][0] != '}')
+    l ← 1
     {
         # WARNING: Some structs have empty spaces and comments -> OK, processed
-        if ((linesPtr[l][0] != ' ') && (linesPtr[l][0] != '\0'))
-        {
+        {𝕤
             # Scan one field line
-            char *fieldLine = linesPtr[l];
-            int fieldEndPos = 0;
-            while (fieldLine[fieldEndPos] != ';') fieldEndPos++;
+            fieldLine ← l⊑linesPtr
+            fieldEndPos ← ⊑fieldLine⊐';'
 
-            if ((fieldLine[0] != '/') && !IsTextEqual(fieldLine, "struct", 6)) # Field line is not a comment and not a struct declaration
-            {
-                #printf("Struct field: %s_\n", fieldLine);     # OK!
-
+            {𝕤 # Field line is not a comment and not a struct declaration
                 # Get struct field type and name
-                GetDataTypeAndName(fieldLine, fieldEndPos, structs[i].fieldType[structs[i].fieldCount], structs[i].fieldName[structs[i].fieldCount]);
+                structs[i].fieldType[structs[i].fieldCount] ‿ structs[i].fieldName[structs[i].fieldCount] ← GetDataTypeAndName fieldEndPos↑fieldLine
 
                 # Get the field description
-                GetDescription(&fieldLine[fieldEndPos], structs[i].fieldDesc[structs[i].fieldCount]);
+                structs[i].fieldDesc[structs[i].fieldCount] ↩ GetDescription fieldEndPos↓fieldLine
 
-                structs[i].fieldCount++;
+                structs[i].fieldCount+↩1
 
                 # Split field names containing multiple fields (like Matrix)
-                int additionalFields = 0;
-                int originalIndex = structs[i].fieldCount - 1;
-                for (unsigned int c = 0; c < TextLength(structs[i].fieldName[originalIndex]); c++)
-                {
-                    if (structs[i].fieldName[originalIndex][c] == ',') additionalFields++;
+                additionalFields ← 0
+                originalIndex ← structs[i].fieldCount - 1
+                For (c←0)‿{𝕊:c<≠structs[i].fieldName[originalIndex]}‿{𝕊:c+↩1}‿{
+                    {𝕊:additionalFields+↩1}⍟⊢structs[i].fieldName[originalIndex][c] = ','
                 }
 
-                if (additionalFields > 0)
-                {
-                    int originalLength = -1;
-                    int lastStart;
-                    for (unsigned int c = 0; c < TextLength(structs[i].fieldName[originalIndex]) + 1; c++)
-                    {
-                        char v = structs[i].fieldName[originalIndex][c];
-                        bool isEndOfString = (v == '\0');
-                        if ((v == ',') || isEndOfString)
-                        {
-                            if (originalLength == -1)
+                {𝕤
+                    int originalLength ← ¯1
+                    lastStart←0
+                    For (c←0)‿{𝕊:c < 1+≠structs[i].fieldName[originalIndex]}‿{𝕊:c+↩1}‿{𝕤
+                        v ← structs[i].fieldName[originalIndex][c]
+                        isEndOfString ← v = @
+                        {𝕤
                             {
-                                # Save length of original field name
-                                # Don't truncate yet, still needed for copying
-                                originalLength = c;
-                            }
-                            else
-                            {
+                                originalLength=¯1?
+                                    # Save length of original field name
+                                    # Don't truncate yet, still needed for copying
+                                    originalLength ↩ c
+                                ;
                                 # Copy field data from original field
-                                int nameLength = c - lastStart;
-                                MemoryCopy(structs[i].fieldName[structs[i].fieldCount], &structs[i].fieldName[originalIndex][lastStart], nameLength);
-                                MemoryCopy(structs[i].fieldType[structs[i].fieldCount], &structs[i].fieldType[originalIndex][0], TextLength(structs[i].fieldType[originalIndex]));
-                                MemoryCopy(structs[i].fieldDesc[structs[i].fieldCount], &structs[i].fieldDesc[originalIndex][0], TextLength(structs[i].fieldDesc[originalIndex]));
-                                structs[i].fieldCount++;
+                                nameLength ← c-lastStart
+                                structs[i].fieldName[structs[i].fieldCount] ↩ nameLength ↑ structs[i].fieldName[originalIndex][lastStart]
+                                structs[i].fieldType[structs[i].fieldCount] ↩ structs[i].fieldType[originalIndex][0]
+                                structs[i].fieldDesc[structs[i].fieldCount] ↩ structs[i].fieldDesc[originalIndex][0]
+                                structs[i].fieldCount+↩1
                             }
-                            if (!isEndOfString)
-                            {
+                            
+                            {𝕤
                                 # Skip comma and spaces
-                                c++;
-                                while (structs[i].fieldName[originalIndex][c] == ' ') c++;
+                                c+↩1
+                                {𝕊:c+↩1}•_while_{𝕊:' '=structs[i].fieldName[originalIndex][c]}@
 
                                 # Save position for next field
-                                lastStart = c;
-                            }
-                        }
+                                lastStart ↩ c
+                            }⍟¬isEndOfString
+                        }⍟⊢isEndOfString∨v=','
                     }
                     # Set length of original field to truncate the first field name
-                    structs[i].fieldName[originalIndex][originalLength] = '\0';
-                }
+                    structs[i].fieldName[originalIndex][originalLength] ↩ @
+                }⍟⊢additionalFields>0
 
                 # Split field types containing multiple fields (like MemNode)
-                additionalFields = 0;
-                originalIndex = structs[i].fieldCount - 1;
-                for (unsigned int c = 0; c < TextLength(structs[i].fieldType[originalIndex]); c++)
-                {
-                    if (structs[i].fieldType[originalIndex][c] == ',') additionalFields++;
+                additionalFields ← 0
+                originalIndex ← structs[i].fieldCount - 1
+                For (c = 0)‿{𝕊:c<≠structs[i].fieldType[originalIndex]}‿{𝕊:c+↩1}‿{𝕤
+                    additionalFields+↩structs[i].fieldType[originalIndex][c] = ','
                 }
 
-                if (additionalFields > 0)
-                {
+                {𝕤
                     # Copy original name to last additional field
-                    structs[i].fieldCount += additionalFields;
-                    MemoryCopy(structs[i].fieldName[originalIndex + additionalFields], &structs[i].fieldName[originalIndex][0], TextLength(structs[i].fieldName[originalIndex]));
+                    structs[i].fieldCount +↩ additionalFields
+                    structs[i].fieldName[originalIndex + additionalFields]↩ (≠structs[i].fieldName[originalIndex])↑structs[i].fieldName[originalIndex][0]
 
                     # Copy names from type to additional fields
-                    int fieldsRemaining = additionalFields;
-                    int nameStart = -1;
-                    int nameEnd = -1;
-                    for (int k = TextLength(structs[i].fieldType[originalIndex]); k > 0; k--)
-                    {
-                        char v = structs[i].fieldType[originalIndex][k];
-                        if ((v == '*') || (v == ' ') || (v == ','))
-                        {
-                            if (nameEnd != -1) {
+                    fieldsRemaining ← additionalFields
+                    nameStart ← ¯1
+                    nameEnd ← ¯1
+                    For (k←≠structs[i].fieldType[originalIndex])‿{𝕊:k>0}‿{k-↩1}‿{𝕤
+                        ∨´"* ,"=structs[i].fieldType[originalIndex][k]?
+                            {𝕤
                                 # Don't copy to last additional field
-                                if (fieldsRemaining != additionalFields)
-                                {
-                                    nameStart = k + 1;
-                                    MemoryCopy(structs[i].fieldName[originalIndex + fieldsRemaining], &structs[i].fieldType[originalIndex][nameStart], nameEnd - nameStart + 1);
-                                }
-                                nameEnd = -1;
-                                fieldsRemaining--;
-                            }
-                        }
-                        else if (nameEnd == -1) nameEnd = k;
+                                {𝕤
+                                    nameStart ↩ k + 1
+                                    structs[i].fieldName[originalIndex + fieldsRemaining] ↩(nameEnd - nameStart + 1)↑structs[i].fieldType[originalIndex][nameStart]
+                                }⍟⊢fieldsRemaining≠additionalFields
+                                nameEnd ↩ ¯1
+                                fieldsRemaining-↩1
+                            }⍟⊢nameEnd≠¯1
+                        ;
+                            nameEnd=¯1? nameEnd ↩ k
+                        ;@
                     }
 
                     # Truncate original field type
-                    int fieldTypeLength = nameStart;
-                    structs[i].fieldType[originalIndex][fieldTypeLength] = '\0';
+                    fieldTypeLength ← nameStart
+                    structs[i].fieldType[originalIndex][fieldTypeLength] ↩ @
 
                     # Set field type and description of additional fields
-                    for (int j = 1; j <= additionalFields; j++)
-                    {
-                        MemoryCopy(structs[i].fieldType[originalIndex + j], &structs[i].fieldType[originalIndex][0], fieldTypeLength);
-                        MemoryCopy(structs[i].fieldDesc[originalIndex + j], &structs[i].fieldDesc[originalIndex][0], TextLength(structs[i].fieldDesc[originalIndex]));
+                    For (j←1)‿{𝕊:j≤additionalFields}‿{𝕊:j+↩1}‿{𝕤
+                        structs[i].fieldType[originalIndex + j] ↩ fieldTypeLength                       ↑structs[i].fieldType[originalIndex][0]
+                        structs[i].fieldDesc[originalIndex + j] ↩ (≠structs[i].fieldDesc[originalIndex])↑structs[i].fieldDesc[originalIndex][0]
                     }
-                }
-            }
-        }
+                }⍟⊢additionalFields > 0
+            }⍟⊢∧´"struct"‿"/"≢¨6‿1↑¨<fieldLine
+        }⍟⊢∧´(' '∾@+9)≠⊑l⊑linesPtr
 
-        l++;
-    }
+        l+↩1
+    }•_while_{𝕊:'}'≠⊑l⊑linesPtr}@
 
     structs[i].fieldType[j] ← ⟨⟩
 
     # Move array sizes from name to type
-    for (int j = 0; j < structs[i].fieldCount; j++)
-    {
+    For (j←0)‿{𝕊:j < structs[i].fieldCount}‿{𝕊:j+↩1}‿{
         # Move array size from name to type
         structs[i].fieldType[j] ∾⟜<↩ 1↓¯1↓∨`∘=⟜'['⊸/ structs[i].fieldName[j]
     }
 }
-free(structLines);
 
 # Alias info data
-aliases = (AliasInfo *)calloc(MAX_ALIASES_TO_PARSE, sizeof(AliasInfo));
+aliases ← max_aliases_to_parse⥊aliasInfo
 
-for (int i = 0; i < aliasCount; i++)
-{
+For (i←0)‿{𝕊:i<aliasCount}‿{𝕊:i+↩1}‿{𝕤
     # Description from previous line
-    GetDescription(lines[aliasLines[i] - 1], aliases[i].desc);
+    aliases[i].desc↩GetDescription lines[aliasLines[i] - 1]
 
-    char *linePtr = lines[aliasLines[i]];
+    linePtr ← lines[aliasLines[i]]
 
-    # Skip "typedef "
-    int c = 8;
+    c ← ≠"typedef "
 
     # Type
-    int typeStart = c;
-    while(linePtr[c] != ' ') c++;
-    int typeLen = c - typeStart;
-    MemoryCopy(aliases[i].type, &linePtr[typeStart], typeLen);
+    typeStart ← c
+    {𝕊:c+↩1}•_while_{𝕊:linePtr[c]≠' '}@
+    typeLen ← c - typeStart
+    aliases[i].type ↩ typeLen↑linePtr[typeStart]
 
     # Skip space
-    c++;
+    c+↩1
 
     # Name
-    int nameStart = c;
-    while(linePtr[c] != ';') c++;
-    int nameLen = c - nameStart;
-    MemoryCopy(aliases[i].name, &linePtr[nameStart], nameLen);
+    nameStart ← c
+    {𝕊:c+↩1}•_while_{𝕊:linePtr[c]≠';'}@
+    nameLen ← c - nameStart
+    aliases[i].name↩nameLen↑linePtr[nameStart]
 
     # Description
-    GetDescription(&linePtr[c], aliases[i].desc);
+    aliases[i].desc ↩ GetDescription c⊑linePtr
 }
-free(aliasLines);
 
 # Enum info data
-enums = (EnumInfo *)calloc(MAX_ENUMS_TO_PARSE, sizeof(EnumInfo));
+enums ← max_enums_to_parse⥊enumInfo
 
-for (int i = 0; i < enumCount; i++)
-{
+For (i←0)‿{𝕊:i<enumCount}‿{i+↩1}‿{
 
     # Parse enum description
     # NOTE: This is not necessarily from the line immediately before,
     # some of the enums have extra lines between the "description"
     # and the typedef enum
-    for (int j = enumLines[i] - 1; j > 0; j--)
-    {
-        char *linePtr = lines[j];
-        if ((linePtr[0] != '/') || (linePtr[2] != ' '))
-        {
-            GetDescription(&lines[j + 1][0], enums[i].desc);
-            break;
-        }
+    break ← 1
+    For (j←enumLines[i]-1)‿{𝕊:break∧j > 0}‿{j-↩1}‿{𝕤
+        linePtr ← j⊑lines
+        {𝕤
+            enums[i].desc ↩ GetDescription lines⊑˜j+1
+            break↩0
+        }⍟⊢('/'≠⊑linePtr) ∨ ' '≠2⊑linePtr
     }
+    break↩1
+    For (j=1)‿{𝕊:break∧j<max_enum_values×2}‿{j+↩1}‿{   # Maximum number of lines following enum first line
+        linePtr ← lines⊑˜j+i⊑enumLines
 
-    for (int j = 1; j < MAX_ENUM_VALUES*2; j++)   # Maximum number of lines following enum first line
-    {
-        char *linePtr = lines[enumLines[i] + j];
-
-        if ((linePtr[0] >= 'A') && (linePtr[0] <= 'Z'))
-        {
+        (≥⟜'A'∧'Z'⊸≥)linePtr[0]?
             # Parse enum value line, possible options:
             #ENUM_VALUE_NAME,
             #ENUM_VALUE_NAME
@@ -823,15 +748,11 @@ for (int i = 0; i < enumCount; i++)
             #ENUM_VALUE_NAME     = 0x00000040,   # Value description
 
             # We start reading the value name
-            int c = 0;
-            while ((linePtr[c] != ',') &&
-                    (linePtr[c] != ' ') &&
-                    (linePtr[c] != '=') &&
-                    (linePtr[c] != '\0'))
-            {
-                enums[i].valueName[enums[i].valueCount][c] = linePtr[c];
-                c++;
-            }
+            c ← 0
+            {𝕤
+                enums[i].valueName[enums[i].valueCount][c] ↩ linePtr[c]
+                c+↩1
+            }•_while_{𝕊:∧´(c⊑linePtr)≠", ="∾@}@
 
             # After the name we can have:
             #  '='  -> value is provided
@@ -840,204 +761,183 @@ for (int i = 0; i < enumCount; i++)
             #  '\0' -> value is equal to previous + 1
 
             # Let's start checking if the line is not finished
-            if ((linePtr[c] != ',') && (linePtr[c] != '\0'))
-            {
+            {(≠⟜','∧≠⟜@)c⊑linePtr?
                 # Two options:
                 #  '='  -> value is provided
                 #  ' '  -> value is equal to previous + 1, there could be a description if not '\0'
-                bool foundValue = false;
-                while ((linePtr[c] != '\0') && (linePtr[c] != '/'))
-                {
-                    if (linePtr[c] == '=')
-                    {
-                        foundValue = true;
-                        break;
-                    }
-                    c++;
-                }
+                foundValue ← 0
+                 
+                {𝕤
+                    {𝕤
+                        foundValue ↩ 1
+                        break↩0
+                    }⍟⊢'='=linePtr[c]
+                    c+↩1
+                }•_while_{𝕊:∧´@‿'/'≠c⊑linePtr}@
 
-                if (foundValue)
-                {
-                    if (linePtr[c + 1] == ' ') c += 2;
-                    else c++;
+                {foundValue?
+                    c+↩1+' '=linePtr⊑˜c+1
 
                     # Parse integer value
-                    int n = 0;
-                    char integer[16] = { 0 };
+                    n←0
+                    integer ← ⟨⟩
 
-                    while ((linePtr[c] != ',') && (linePtr[c] != ' ') && (linePtr[c] != '\0'))
                     {
-                        integer[n] = linePtr[c];
-                        c++; n++;
-                    }
+                        integer[n] ↩ linePtr[c]
+                        c+↩1 ⋄ n+↩1
+                    }⍟⊢∧´','‿' '‿@≠c⊑linePtr
 
-                    if (integer[1] == 'x') enums[i].valueInteger[enums[i].valueCount] = (int)strtol(integer, NULL, 16);
-                    else enums[i].valueInteger[enums[i].valueCount] = atoi(integer);
+                    enums[i].valueInteger[enums[i].valueCount] ↩ •ParseFloat integer
+                ;
+                    enums[i].valueInteger[enums[i].valueCount] ↩ 1+enums[i].valueInteger[enums[i].valueCount - 1]
                 }
-                else enums[i].valueInteger[enums[i].valueCount] = (enums[i].valueInteger[enums[i].valueCount - 1] + 1);
+            ;
+                enums[i].valueInteger[enums[i].valueCount] ↩ 1+enums[i].valueInteger[enums[i].valueCount - 1]
             }
-            else enums[i].valueInteger[enums[i].valueCount] = (enums[i].valueInteger[enums[i].valueCount - 1] + 1);
 
             # Parse value description
-            GetDescription(&linePtr[c], enums[i].valueDesc[enums[i].valueCount]);
+            enums[i].valueDesc[enums[i].valueCount] ↩ GetDescription c⊑linePtr
 
-            enums[i].valueCount++;
-        }
-        else if (linePtr[0] == '}')
-        {
+            enums[i].valueCount+↩1
+    ;
+        linePtr[0] = '}'?
+        
             # Get enum name from typedef
-            int c = 0;
-            while (linePtr[2 + c] != ';')
-            {
-                enums[i].name[c] = linePtr[2 + c];
-                c++;
-            }
+            c ← 0
+            {𝕤
+                enums[i].name[c] ↩ linePtr⊑˜2 + c
+                c+↩1
+            }•_while_{𝕊:';'≠linePtr⊑˜2+c}@
 
-            break;  # Enum ended, break for() loop
-        }
+            break↩0  # Enum ended, break for() loop
+    ;@
     }
 }
-free(enumLines);
 
 # Callback info data
-callbacks = (FunctionInfo *)calloc(MAX_CALLBACKS_TO_PARSE, sizeof(FunctionInfo));
+callbacks ← max_callbacks_to_parse⥊functioninfo
 
-for (int i = 0; i < callbackCount; i++)
-{
-    char *linePtr = lines[callbackLines[i]];
+For (i=0)‿{𝕊:i < callbackCount}‿{i+↩1}‿{
+    linePtr ← lines⊑˜callbackLines⊑˜i
 
     # Skip "typedef "
-    unsigned int c = 8;
+    c ← 8
 
     # Return type
-    int retTypeStart = c;
-    while(linePtr[c] != '(') c++;
-    int retTypeLen = c - retTypeStart;
-    while(linePtr[retTypeStart + retTypeLen - 1] == ' ') retTypeLen--;
-    MemoryCopy(callbacks[i].retType, &linePtr[retTypeStart], retTypeLen);
+    retTypeStart ← c
+    {𝕊:c+↩1}•_while_{𝕊:'('≠c⊑linePtr}@
+    retTypeLen ← c - retTypeStart
+    {𝕊:retTypeLen-↩1}•_while_{𝕊:' '=linePtr⊑˜retTypeStart+retTypeLen-1}
+    callbacks[i].retType ↩ retTypeLen↑linePtr⊑˜retTypeStart
 
     # Skip "(*"
-    c += 2;
+    c +↩ ≠"(*"
 
     # Name
-    int nameStart = c;
-    while(linePtr[c] != ')') c++;
-    int nameLen = c - nameStart;
-    MemoryCopy(callbacks[i].name, &linePtr[nameStart], nameLen);
+    nameStart←c
+    {𝕊:c+↩1}•_while_{𝕊:')'≠linePtr⊑˜c}@
+    nameLen ← c - nameStart
+    callbacks[i].name↩nameLen↑linePtr⊑˜nameStart
 
     # Skip ")("
-    c += 2;
+    c +↩ ≠")("
 
     # Params
-    int paramStart = c;
-    for (; c < MAX_LINE_LENGTH; c++)
-    {
-        if ((linePtr[c] == ',') || (linePtr[c] == ')'))
-        {
+    paramStart ← c
+    break←1
+    For c‿{𝕊:break∧c<max_line_length}‿{𝕊:c+↩1}‿{𝕤
+        {𝕤
             # Get parameter type + name, extract info
-            int paramLen = c - paramStart;
-            GetDataTypeAndName(&linePtr[paramStart], paramLen, callbacks[i].paramType[callbacks[i].paramCount], callbacks[i].paramName[callbacks[i].paramCount]);
-            callbacks[i].paramCount++;
-            paramStart = c + 1;
-            while(linePtr[paramStart] == ' ') paramStart++;
-        }
-        if (linePtr[c] == ')') break;
+            paramLen ← c - paramStart
+            callbacks[i].paramType[callbacks[i].paramCount]‿callbacks[i].paramName[callbacks[i].paramCount] ↩ GetDataTypeAndName (paramStart⊑linePtr)‿paramLen
+            callbacks[i].paramCount+↩1
+            paramStart ↩ c+1
+            {𝕊:paramStart+↩1}•_while_{𝕊:' '=paramStart⊑linePtr}
+        }⍟⊢∨´"),"=c⊑linePtr
+        {𝕊:break↩0}⍟⊢')'=c⊑linePtr
     }
 
     # Description
-    GetDescription(&linePtr[c], callbacks[i].desc);
+    callbacks[i].desc ↩ GetDescription c⊑linePtr
 
     callbacks[i].paramType[j] ← ⟨⟩
 
     # Move array sizes from name to type
-    for (int j = 0; j < callbacks[i].paramCount; j++)
-    {
+    For (j←0)‿{𝕊:j<callbacks[i].paramCount}‿{𝕊:j+↩1}‿{
         # Move array size from name to type
         callbacks[i].paramType[j] ∾⟜<↩ 1↓¯1↓∨`∘=⟜'['⊸/ callbacks[i].paramName[j]
     }
 }
-free(callbackLines);
 
 # Functions info data
-funcs = (FunctionInfo *)calloc(MAX_FUNCS_TO_PARSE, sizeof(FunctionInfo));
+funcs ← max_funcs_to_parse⥊functionInfo
 
-for (int i = 0; i < funcCount; i++)
-{
-    char *linePtr = lines[funcLines[i]];
+For (i = 0)‿{𝕊:i < funcCount}‿{i+↩1}‿{
+    linePtr ← lines⊑˜i⊑funcLines
 
-    int funcParamsStart = 0;
-    int funcEnd = 0;
+    funcParamsStart ← 0
+    funcEnd ← 0
 
     # Get return type and function name from func line
-    for (int c = 0; (c < MAX_LINE_LENGTH) && (linePtr[c] != '\n'); c++)
-    {
-        if (linePtr[c] == '(')     # Starts function parameters
-        {
-            funcParamsStart = c + 1;
+    break←1
+    For (c←0)‿{𝕊:break∧(c<max_line_length)∧(c⊑linePtr)≠10+@}‿{𝕊:c+↩1}‿{𝕤
+        # Starts function parameters
+        {𝕤
+            funcParamsStart ↩ c + 1
 
             # At this point we have function return type and function name
-            char funcRetTypeName[128] = { 0 };
-            int dc = TextLength(apiDefine) + 1;
-            int funcRetTypeNameLen = c - dc;     # Substract `define` ("RLAPI " for raylib.h)
-            MemoryCopy(funcRetTypeName, &linePtr[dc], funcRetTypeNameLen);
+            dc ← 1+≠apiDefine
+            funcRetTypeNameLen ← c-dc     # Substract `define` ("RLAPI " for raylib.h)
+            funcRetTypeName ← funcRetTypeNameLen↑dc⊑linePtr
 
-            GetDataTypeAndName(funcRetTypeName, funcRetTypeNameLen, funcs[i].retType, funcs[i].name);
-            break;
-        }
+            funcs[i].retType‿funcs[i].name ↩ GetDataTypeAndName funcRetTypeName‿funcRetTypeNameLen
+            break↩0
+        }⍟⊢'('=c⊑linePtr
     }
 
     # Get parameters from func line
-    for (int c = funcParamsStart; c < MAX_LINE_LENGTH; c++)
-    {
-        if (linePtr[c] == ',')     # Starts function parameters
-        {
+    break↩1
+    For (c←funcParamsStart)‿{𝕊:break∧c<max_line_length}‿{𝕊:c+↩1}‿{
+        linePtr[c] = ','?     # Starts function parameters
             # Get parameter type + name, extract info
-            char funcParamTypeName[128] = { 0 };
-            int funcParamTypeNameLen = c - funcParamsStart;
-            MemoryCopy(funcParamTypeName, &linePtr[funcParamsStart], funcParamTypeNameLen);
+            funcParamTypeNameLen ← c-funcParamsStart
+            funcParamTypeName ← funcParamTypeNameLen↑funcParamsStart⊑linePtr
 
-            GetDataTypeAndName(funcParamTypeName, funcParamTypeNameLen, funcs[i].paramType[funcs[i].paramCount], funcs[i].paramName[funcs[i].paramCount]);
+            funcs[i].paramType[funcs[i].paramCount] ‿ funcs[i].paramName[funcs[i].paramCount] ← GetDataTypeAndName funcParamTypeName‿funcParamTypeNameLen
 
-            funcParamsStart = c + 1;
-            if (linePtr[c + 1] == ' ') funcParamsStart += 1;
-            funcs[i].paramCount++;      # Move to next parameter
-        }
-        else if (linePtr[c] == ')')
-        {
-            funcEnd = c + 2;
+            funcParamsStart ↩ c+1
+            {𝕊:funcParamsStart +↩ 1}⍟⊢' '=linePtr⊑˜c+1
+            funcs[i].paramCount+↩1      # Move to next parameter
+
+        ; linePtr[c] = ')'?
+
+            funcEnd ← c+2
 
             # Check if previous word is void
-            if ((linePtr[c - 4] == 'v') && (linePtr[c - 3] == 'o') && (linePtr[c - 2] == 'i') && (linePtr[c - 1] == 'd')) break;
-
+            {break↩0}⍟⊢(¯4↑linePtr)≡"void"
+            break?
             # Get parameter type + name, extract info
-            char funcParamTypeName[128] = { 0 };
-            int funcParamTypeNameLen = c - funcParamsStart;
-            MemoryCopy(funcParamTypeName, &linePtr[funcParamsStart], funcParamTypeNameLen);
+            funcParamTypeNameLen ← c-funcParamsStart
+            funcParamTypeName ← funcParamTypeNameLen↑funcParamsStart⊑linePtr
 
-            GetDataTypeAndName(funcParamTypeName, funcParamTypeNameLen, funcs[i].paramType[funcs[i].paramCount], funcs[i].paramName[funcs[i].paramCount]);
+            funcs[i].paramType[funcs[i].paramCount] ‿ funcs[i].paramName[funcs[i].paramCount] ← GetDataTypeAndName funcParamTypeName‿funcParamTypeNameLen
 
-            funcs[i].paramCount++;      # Move to next parameter
-            break;
-        }
+            funcs[i].paramCount+↩1      # Move to next parameter
+            break↩0
+        ;@
     }
 
     # Get function description
-    GetDescription(&linePtr[funcEnd], funcs[i].desc);
+    funcs[i].desc↩GetDescription funcEnd⊑linePtr
 
     funcs[i].paramType[j]←⟨⟩
 
     # Move array sizes from name to type
-    for (int j = 0; j < funcs[i].paramCount; j++)
-    {
+    For (j = 0)‿{𝕊:j < funcs[i].paramCount}‿{𝕊:j+↩1}‿{𝕤
         # Move array size from name to type
         funcs[i].paramType[j] ∾⟜<↩ 1↓¯1↓∨`∘=⟜'['⊸/ funcs[i].paramName[j]
     }
-
 }
-free(funcLines);
-
-for (int i = 0; i < linesCount; i++) free(lines[i]);
-free(lines);
 
 # At this point, all raylib data has been parsed!
 #----------------------------------------------------------------------------------
