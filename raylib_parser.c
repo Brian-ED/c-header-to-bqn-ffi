@@ -168,7 +168,6 @@ static FunctionInfo *funcs = NULL;
 
 // Command line variables
 static char apiDefine[SIZEMULT*32] = { 0 };         // Functions define (i.e. RLAPI for raylib.h, RMDEF for raymath.h, etc.)
-static char truncAfter[SIZEMULT*32] = { 0 };        // Truncate marker (i.e. "RLGL IMPLEMENTATION" for rlgl.h)
 
 // NOTE: Max length depends on OS, in Windows MAX_PATH = 256
 static char inFileName[SIZEMULT*512] = { 0 };        // Input file name (required in case of drag & drop over executable)
@@ -201,9 +200,7 @@ int main(int argc, char* argv[])
 {
     if (argc > 1) ProcessCommandLine(argc, argv);
 
-    if (inFileName[0] == '\0') MemoryCopy(inFileName, "../src/raylib.h\0", 16);
-    if (outFileName[0] == '\0') MemoryCopy(outFileName, "raylib_api.txt\0", 15);
-    if (apiDefine[0] == '\0') MemoryCopy(apiDefine, "RLAPI\0", 6);
+    if (apiDefine[0] == '\0') MemoryCopy(apiDefine, " \0", 2);
 
     int length = 0;
     char *buffer = LoadFileText(inFileName, &length);
@@ -218,19 +215,6 @@ int main(int argc, char* argv[])
     // NOTE: GetTextLines() also removes leading spaces/tabs
     int linesCount = 0;
     char **lines = GetTextLines(buffer, length, &linesCount);
-
-    // Truncate lines
-    if (truncAfter[0] != '\0')
-    {
-        int newCount = -1;
-        for (int i = 0; i < linesCount; i++)
-        {
-            if (newCount > -1) free(lines[i]);
-            else if (TextFindIndex(lines[i], truncAfter) > -1) newCount = i;
-        }
-        if (newCount > -1) linesCount = newCount;
-        printf("Number of truncated text lines: %i\n", linesCount);
-    }
 
     // Defines line indices
     int *defineLines = (int *)malloc(MAX_DEFINES_TO_PARSE*sizeof(int));
@@ -541,7 +525,6 @@ int main(int argc, char* argv[])
                     else
                     {
                         isMath = false;
-                        break;
                     }
                 } else {   // Read string operand
                     int operandStart = c;
@@ -578,7 +561,6 @@ int main(int argc, char* argv[])
                     if (!foundOperand)
                     {
                         isMath = false;
-                        break;
                     }
                 }
             }
@@ -1072,7 +1054,7 @@ static void ShowCommandLineInfo(void)
     printf("//////////////////////////////////////////////////////////////////////////////////\n\n");
 
     printf("USAGE:\n\n");
-    printf("    > raylib_parser [--help] [--input <filename.h>] [--output <filename.ext>] [--format <type>]\n");
+    printf("    > raylib_parser [--help] [--input <filename.h>] [--output <filename.ext>]\n");
 
     printf("\nOPTIONS:\n\n");
     printf("    -h, --help                      : Show tool version and command line usage help\n\n");
@@ -1081,20 +1063,12 @@ static void ShowCommandLineInfo(void)
     printf("    -o, --output <filename.ext>     : Define output file and format.\n");
     printf("                                      Supported extensions: .txt, .json, .xml, .lua, .h\n");
     printf("                                      NOTE: If not specified, defaults to: raylib_api.txt\n\n");
-    printf("    -f, --format <type>             : Define output format for parser data.\n");
-    printf("                                      Supported types: DEFAULT, JSON, XML, LUA, CODE\n\n");
     printf("    -d, --define <DEF>              : Define functions specifiers (i.e. RLAPI for raylib.h, RMDEF for raymath.h, etc.)\n");
     printf("                                      NOTE: If no specifier defined, defaults to: RLAPI\n\n");
-    printf("    -t, --truncate <after>          : Define string to truncate input after (i.e. \"RLGL IMPLEMENTATION\" for rlgl.h)\n");
-    printf("                                      NOTE: If not specified, the full input file is parsed.\n\n");
 
     printf("\nEXAMPLES:\n\n");
     printf("    > raylib_parser --input raylib.h --output api.json\n");
     printf("        Process <raylib.h> to generate <api.json>\n\n");
-    printf("    > raylib_parser --output raylib_data.info --format XML\n");
-    printf("        Process <raylib.h> to generate <raylib_data.info> as XML text data\n\n");
-    printf("    > raylib_parser --input raymath.h --output raymath_data.info --format XML\n");
-    printf("        Process <raymath.h> to generate <raymath_data.info> as XML text data\n\n");
 }
 
 // Process command line arguments
@@ -1136,15 +1110,6 @@ static void ProcessCommandLine(int argc, char *argv[])
                 i++;
             }
             else printf("WARNING: No define key provided\n");
-        }
-        else if (IsTextEqual(argv[i], "-t", 2) || IsTextEqual(argv[i], "--truncate", 10))
-        {
-            if (((i + 1) < argc) && (argv[i + 1][0] != '-'))
-            {
-                MemoryCopy(truncAfter, argv[i + 1], TextLength(argv[i + 1])); // Read truncate marker
-                truncAfter[TextLength(argv[i + 1])] = '\0';
-                i++;
-            }
         }
     }
 }
