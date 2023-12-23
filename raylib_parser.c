@@ -200,8 +200,6 @@ int main(int argc, char* argv[])
 {
     if (argc > 1) ProcessCommandLine(argc, argv);
 
-    if (apiDefine[0] == '\0') MemoryCopy(apiDefine, " \0", 2);
-
     int length = 0;
     char *buffer = LoadFileText(inFileName, &length);
 
