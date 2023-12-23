@@ -4,6 +4,7 @@ binLocation ← "/tmp/a.out"
 parserPath ← •file.At"./raylib_parser.c"
 
 tmpHeaderPath •FChars ⊑•args
+definePrefix ← "NO_FUNCTIONS"‿(⊑¯1↑•args)⊑˜1<≠•args
 
 # util functions
 nl ← @+10 # newline
@@ -18,7 +19,7 @@ SHErr ← {exitcode‿stdout‿stderr←•SH𝕩
 
 # compile c parser if non existant
 SHErr "cc"‿parserPath‿"-o"‿binLocation
-SHErr binLocation‿"-i"‿tmpHeaderPath‿"-f"‿"JSON"‿"-o"‿jsonTempLoc
+SHErr binLocation‿"-i"‿tmpHeaderPath‿"-f"‿"JSON"‿"-o"‿jsonTempLoc‿"-d"‿definePrefix
 
 remap ← {𝕎𝕏}´{(𝕨⊸≡∧"*"≡1↑⊣)◶⟨⋈⋄𝕩⋈˜1↓⊣⟩´}´¨⟨
   "unsigned char"  ‿"ustr"
