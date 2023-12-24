@@ -8,13 +8,7 @@ truncAfter ← ""           # Truncate marker (i.e. "RLGL IMPLEMENTATION" for rl
     raylib API parser
 
     This parser scans raylib.h to get API information about defines, structs, aliases, enums, callbacks and functions.
-    All data is divided into pieces, usually as strings. The following types are used for data:
-
-     - struct DefineInfo
-     - struct StructInfo
-     - struct AliasInfo
-     - struct EnumInfo
-     - struct FunctionInfo
+    All data is divided into pieces, usually as strings.
 
     CONSTRAINTS:
 
@@ -55,15 +49,7 @@ truncAfter ← ""           # Truncate marker (i.e. "RLGL IMPLEMENTATION" for rl
      - This parser does not require <string.h> library, all data is parsed directly from char buffers.
 **********************************************************************************************/
 "
-max_structs_to_parse    ←   64 # Maximum number of structures to parse
-max_aliases_to_parse    ←   64 # Maximum number of aliases to parse
-max_enums_to_parse      ←   64 # Maximum number of enums to parse
-max_callbacks_to_parse  ←   64 # Maximum number of callbacks to parse
-max_funcs_to_parse      ← 1024 # Maximum number of functions to parse
-max_line_length         ←  512 # Maximum length of one line (including comments)
-max_struct_fields       ←   64 # Maximum number of struct fields
 max_enum_values         ←  512 # Maximum number of enum values
-max_function_parameters ←   12 # Maximum number of function parameters
 
 If      ← {𝕏⍟𝕎@}´                 # Also Repeat
 IfElse  ← {c‿T‿F: c◶F‿T@}
@@ -101,44 +87,6 @@ tab←9+@
     coloR
 ⟩ ← ↕14
 
-# Struct info data
-structInfo ← ⟨
-    0‿64 ⥊""  # name       # Struct name
-    0‿128⥊""  # desc       # Struct type description
-    ↕0        # fieldCount # Number of fields in the struct
-    0‿max_struct_fields‿64 ⥊""  # fieldType  # Field type
-    0‿max_struct_fields‿64 ⥊""  # fieldName  # Field name
-    0‿max_struct_fields‿128⥊""  # fieldDesc  # Field description
-⟩
-
-# Alias info data
-aliasInfo ← ⟨
-    0‿64 ⥊"" # type # Alias type
-    0‿64 ⥊"" # name # Alias name
-    0‿128⥊"" # desc # Alias description
-⟩
-
-# Enum info data
-enumInfo ← ⟨
-    0‿64 ⥊"" # name       # Enum name
-    0‿128⥊"" # desc       # Enum description
-    ↕0     # valueCount # Number of values in enumerator
-    0‿max_enum_values‿64⥊""  # valueName    # Value name definition
-    0‿max_enum_values⥊↕0     # valueInteger # Value integer
-    0‿max_enum_values‿128⥊"" # valueDesc    # Value description
-⟩
-
-# Function info data
-functionInfo ← ⟨
-    0‿64 ⥊"" # name        # Function name
-    0‿128⥊"" # desc        # Function description (comment at the end)
-    0‿32 ⥊"" # retType     # Return value type
-    ↕0       # paramCount  # Number of function parameters
-    0‿max_function_parameters‿32 ⥊"" # paramType # Parameters type
-    0‿max_function_parameters‿32 ⥊"" # paramName # Parameters name
-    0‿max_function_parameters‿128⥊"" # paramDesc # Parameters description
-⟩
-
 #----------------------------------------------------------------------------------
 # Module Functions Definition
 #----------------------------------------------------------------------------------
@@ -146,18 +94,20 @@ functionInfo ← ⟨
 # Get data type and name from a string containing both
 # NOTE: Useful to parse function parameters and struct fields
 GetDataTypeAndName←{𝕊typeName:#‿type‿name: # const char *typeName, int typeNameLen, char *type, char *name)
+    o←@
     break ← 1
     For (k←≠typeName)‿{𝕊:break∧k>0}‿{𝕊:k-↩1}‿{𝕤
         ('*'=k⊑typeName)∨(' '=k⊑typeName) ∧ ','≠typeName⊑˜k-1?
             break↩0
             # Function name starts at this point (and ret type finishes at this point)
-            k(↑⋈1⊸+⊸↓)typeName
+            o↩k(↑⋈1⊸+⊸↓)typeName
         ;
         ('.'=k⊑typeName) ∧ 3=≠typeName? # Handle varargs ...);
             break↩0
-            "..."‿"args"
+            o↩"..."‿"args"
         ;""‿""
     }
+    o
 }
 
 # Get comment from a line, do nothing if no comment in line
@@ -228,13 +178,6 @@ aliasLines ← ("typedef"⊸(⊣≡≠⊸↑)¨∧2=(+´¨' '⊸=>∨`¨∘∊�
 # ignore inline enums
 enumLines ← ("typedef enum {"⊸(⊣≡≠⊸↑)∧∨´∘=⟜';')¨lines
 
-# Read callback lines
-callbackLines ← {
-    # Find callbacks (lines with "typedef ... (* ... )( ... );")
-    m1←"typedef"⊸(⊣≡≠⊸↑)¨lines
-    m1∧{(");"⊸≡˘∨`⊸<")("⊸≡˘∧"(*"⊸≡˘)2↕𝕩}¨lines
-}
-
 # Read function lines
 # Read function line (starting with `define`, i.e. for raylib.h "RLAPI")
 funcLines ← apiDefine⊸(⊣≡≠⊸↑)¨lines
@@ -257,13 +200,12 @@ defines ← {
     
     # Skip duplicates
     ∊∘{defineIndicies.name⊑𝕩}⊸/defines⊣{𝕊linePtr:
-        defineOut ← ⟨
-            "" # str  # Define name
-            @  # int  # Define type
-            "" # str  # Define value
-            "" # str  # Define description
-            0  # bool # Define is hex number (for types INT, LONG)
-        ⟩
+        name ← ""
+        type ← 0
+        value ← ""
+        description ← ""
+        ishex ← 0
+
         LS ← {∨`¬𝕩∊' '‿tab} # leading spacing
         nameAndArgs ← RS⊸/{𝔽defMacro∾⁼𝔽}linePtr # Skip spaces and tabs, then defMacro, then spaces and tabs again
 
@@ -280,38 +222,38 @@ defines ← {
         name‿args ← nameLen(↑⋈LS⊸/∘↓)nameAndArgs
 
         # Determine type
-        {𝕊:defineOut macro⌾(defineIndicies.type⊸⊑)↩}⍟⊢')'=¯1⊑name
-        {𝕊:defineOut guard⌾(defineIndicies.type⊸⊑)↩}⍟⊢(0=≠args)∨'/'=⊑args
+        {𝕊:type↩macro}⍟⊢')'=¯1⊑name
+        {𝕊:type↩guard}⍟⊢(0=≠args)∨'/'=⊑args
 
-        {'"'=⊑args? defineOut string⌾(defineIndicies.type⊸⊑)↩
-        ;args=○⊑"'"? defineOut char⌾(defineIndicies.type⊸⊑)↩
-        ;"CLITERAL(Color)"≡15↑args? defineOut color⌾(defineIndicies.type⊸⊑)↩
+        {'"'=⊑args? type↩string
+        ;args=○⊑"'"? type↩char
+        ;"CLITERAL(Color)"≡15↑args? type↩color
         ;⊑args⊑⊸∊'0'+↕10? # Parsing numbers
-            isFloat‿isNumber‿isHex ← ⟨
+            isFloat‿isNumber‿isHex2 ← ⟨
                 ⊑∊⟜'.'
                 ⊑∊⟜'x'
                 CheckHex
             ⟩{𝕎𝕩}¨<m←∧`∘¬∘∊⟜' '‿tab⊸/args
             {𝕊:isFloat?
-                defineOut (double‿float⊑˜'f'=¯1⊑m)⌾(defineIndicies.type⊸⊑)↩
+                type↩double‿float⊑˜'f'=¯1⊑m
             ;
-                defineOut (int‿long⊑˜'L'=¯1⊑m)⌾(defineIndicies.type⊸⊑)↩
-                defineOut isHex⌾(defineIndicies.isHex⊸⊑)↩
+                type↩int‿long⊑˜'L'=¯1⊑m
+                ishex↩isHex2
             }⍟⊢isNumber
         }
 
         # Extracting value
         fullValue ← ∨`⌾⌽∘¬∘∊⟜tab‿' '⊸/args/˜¬∨`0∾˜"//"⍷args
-        value ← fullValue↓˜-⊑defineOut.type∊long‿float # Remove number postfix
+        value2 ← fullValue↓˜-⊑type∊long‿float # Remove number postfix
         
-        defineOut value⌾(defineIndicies.value⊸⊑)↩
+        value↩value2
 
         # Extracting description
-        desc ← •Show ∨`∘≠⟜' '⊸/args↓˜2+⊑/"//"⍷args
-        defineOut desc⌾(defineIndicies.desc⊸⊑)↩
+        desc2 ← •Show ∨`∘≠⟜' '⊸/args↓˜2+⊑/"//"⍷args
+        desc↩desc2
 
         # Parse defines of type UNKNOWN to find calculated numbers
-        breakHappened←0⥊˜≠defineOut.value
+        breakHappened←0⥊˜≠value
         {𝕤
             largestType ← unknown
             isMath ← 1
@@ -332,7 +274,7 @@ defines ← {
                             c+↩1
                             ch↩c⊑valuePtr
                         }⍟{𝕊:break2}@
-                    }•_while_{𝕊:break2∧¬∨´ch="()*/ "∾@∾@+9}@
+                    }•_while_{𝕊:break2∧¬∨´ch="()*/ "∾@∾tab}@
                     ¬◶{𝕤
                         # Found a valid number -> update largestType
                         numberType ← (¬isFloat)◶⟨
@@ -362,7 +304,7 @@ defines ← {
                                 foundOperand ← 1
                     }
                     {𝕊:isMath↩0}⍟¬foundOperand
-                }⍟¬∨´ch="()+-*/ "∾@+9
+                }⍟¬∨´ch="()+-*/ "∾tab
             }
             {𝕤
                 # Define is a calculated number -> update type
@@ -376,27 +318,32 @@ defines ← {
             }⍟⊢isMath
         }⍟⊢defineOut.type=unknown
 
-        defineOut
+        name‿type‿value‿description‿ishex
     }¨loopedOver
 }
-defineCount ← ≠defines
 
 # Structs info data
 structs ← {𝕤
+    name←""
+    desc←""
+    fieldCount←⟨⟩
+    fieldType←""
+    fieldName←""
+    fieldDesc←""
+
     linesPtr ← 𝕩↓lines
-    thisStruct ← structInfo
 
     # Parse struct description
-    thisStruct.desc ↩ GetDescription ¯1⊑linesPtr
+    desc ↩ GetDescription ¯1⊑linesPtr
 
     # Get struct name: typedef struct name {
     tds_len ← ≠"typedef struct "
     break←1
-    For (c←tds_len)‿{𝕊:break∧c<64+tds_len}‿{c+↩1}‿{𝕤
-        ∨´linesPtr[0][c]=" {"?
+    For (c←tds_len)‿{𝕊:break∧c<64+tds_len}‿{𝕊:c+↩1}‿{𝕤
+        ∨´" {"=c⊑⊑linesPtr?
             nameLen ← c - tds_len
             {𝕊:nameLen-↩1}•_while_{𝕊:' '=linesPtr[0][tds_len + nameLen - 1]}@
-            thisStruct.name ⊢○(nameLen⊸↑)↩ tds_len↓0⊑linesPtr
+            name ↩ nameLen↑tds_len↓0⊑linesPtr
             break↩0
     }
 
@@ -411,25 +358,25 @@ structs ← {𝕤
 
             {𝕤 # Field line is not a comment and not a struct declaration
                 # Get struct field type and name
-                thisStruct.fieldType[thisStruct.fieldCount] ‿ thisStruct.fieldName[thisStruct.fieldCount] ← GetDataTypeAndName fieldEndPos↑fieldLine
+                fieldType[fieldCount] ‿ fieldName[fieldCount] ← GetDataTypeAndName fieldEndPos↑fieldLine
 
                 # Get the field description
-                thisStruct.fieldDesc[thisStruct.fieldCount] ↩ GetDescription fieldEndPos↓fieldLine
+                fieldDesc[fieldCount] ↩ GetDescription fieldEndPos↓fieldLine
 
-                thisStruct.fieldCount+↩1
+                fieldCount+↩1
 
                 # Split field names containing multiple fields (like Matrix)
                 additionalFields ← 0
-                originalIndex ← thisStruct.fieldCount - 1
-                For (c←0)‿{𝕊:c<≠thisStruct.fieldName[originalIndex]}‿{𝕊:c+↩1}‿{
-                    {𝕊:additionalFields+↩1}⍟⊢thisStruct.fieldName[originalIndex][c] = ','
+                originalIndex ← fieldCount - 1
+                For (c←0)‿{𝕊:c<≠fieldName[originalIndex]}‿{𝕊:c+↩1}‿{
+                    {𝕊:additionalFields+↩1}⍟⊢fieldName[originalIndex][c] = ','
                 }
 
                 {𝕤
                     int originalLength ← ¯1
                     lastStart←0
-                    For (c←0)‿{𝕊:c < 1+≠thisStruct.fieldName[originalIndex]}‿{𝕊:c+↩1}‿{𝕤
-                        v ← thisStruct.fieldName[originalIndex][c]
+                    For (c←0)‿{𝕊:c < 1+≠fieldName[originalIndex]}‿{𝕊:c+↩1}‿{𝕤
+                        v ← fieldName[originalIndex][c]
                         isEndOfString ← v = @
                         {𝕤
                             {
@@ -440,16 +387,16 @@ structs ← {𝕤
                                 ;
                                 # Copy field data from original field
                                 nameLength ← c-lastStart
-                                thisStruct.fieldName[thisStruct.fieldCount] ↩ nameLength ↑ thisStruct.fieldName[originalIndex][lastStart]
-                                thisStruct.fieldType[thisStruct.fieldCount] ↩ thisStruct.fieldType[originalIndex][0]
-                                thisStruct.fieldDesc[thisStruct.fieldCount] ↩ thisStruct.fieldDesc[originalIndex][0]
-                                thisStruct.fieldCount+↩1
+                                fieldName[fieldCount] ↩ nameLength ↑ fieldName[originalIndex][lastStart]
+                                fieldType[fieldCount] ↩ fieldType[originalIndex][0]
+                                fieldDesc[fieldCount] ↩ fieldDesc[originalIndex][0]
+                                fieldCount+↩1
                             }
                             
                             {𝕤
                                 # Skip comma and spaces
                                 c+↩1
-                                {𝕊:c+↩1}•_while_{𝕊:' '=thisStruct.fieldName[originalIndex][c]}@
+                                {𝕊:c+↩1}•_while_{𝕊:' '=fieldName[originalIndex][c]}@
 
                                 # Save position for next field
                                 lastStart ↩ c
@@ -457,32 +404,32 @@ structs ← {𝕤
                         }⍟⊢isEndOfString∨v=','
                     }
                     # Set length of original field to truncate the first field name
-                    thisStruct.fieldName[originalIndex][originalLength] ↩ @
+                    fieldName[originalIndex][originalLength] ↩ @
                 }⍟⊢additionalFields>0
 
                 # Split field types containing multiple fields (like MemNode)
                 additionalFields ← 0
-                originalIndex ← thisStruct.fieldCount - 1
-                For (c = 0)‿{𝕊:c<≠thisStruct.fieldType[originalIndex]}‿{𝕊:c+↩1}‿{𝕤
-                    additionalFields+↩thisStruct.fieldType[originalIndex][c] = ','
+                originalIndex ← fieldCount - 1
+                For (c = 0)‿{𝕊:c<≠fieldType[originalIndex]}‿{𝕊:c+↩1}‿{𝕤
+                    additionalFields+↩fieldType[originalIndex][c] = ','
                 }
 
                 {𝕤
                     # Copy original name to last additional field
-                    thisStruct.fieldCount +↩ additionalFields
-                    thisStruct.fieldName[originalIndex + additionalFields]↩ (≠thisStruct.fieldName[originalIndex])↑thisStruct.fieldName[originalIndex][0]
+                    fieldCount +↩ additionalFields
+                    fieldName[originalIndex + additionalFields]↩ (≠fieldName[originalIndex])↑fieldName[originalIndex][0]
 
                     # Copy names from type to additional fields
                     fieldsRemaining ← additionalFields
                     nameStart ← ¯1
                     nameEnd ← ¯1
-                    For (k←≠thisStruct.fieldType[originalIndex])‿{𝕊:k>0}‿{k-↩1}‿{𝕤
-                        ∨´"* ,"=thisStruct.fieldType[originalIndex][k]?
+                    For (k←≠fieldType[originalIndex])‿{𝕊:k>0}‿{k-↩1}‿{𝕤
+                        ∨´"* ,"=fieldType[originalIndex][k]?
                             {𝕤
                                 # Don't copy to last additional field
                                 {𝕤
                                     nameStart ↩ k + 1
-                                    thisStruct.fieldName[originalIndex + fieldsRemaining] ↩(nameEnd - nameStart + 1)↑thisStruct.fieldType[originalIndex][nameStart]
+                                    fieldName[originalIndex + fieldsRemaining] ↩(nameEnd - nameStart + 1)↑fieldType[originalIndex][nameStart]
                                 }⍟⊢fieldsRemaining≠additionalFields
                                 nameEnd ↩ ¯1
                                 fieldsRemaining-↩1
@@ -494,34 +441,37 @@ structs ← {𝕤
 
                     # Truncate original field type
                     fieldTypeLength ← nameStart
-                    thisStruct.fieldType[originalIndex][fieldTypeLength] ↩ @
+                    fieldType[originalIndex][fieldTypeLength] ↩ @
 
                     # Set field type and description of additional fields
                     For (j←1)‿{𝕊:j≤additionalFields}‿{𝕊:j+↩1}‿{𝕤
-                        thisStruct.fieldType[originalIndex + j] ↩ fieldTypeLength                       ↑thisStruct.fieldType[originalIndex][0]
-                        thisStruct.fieldDesc[originalIndex + j] ↩ (≠thisStruct.fieldDesc[originalIndex])↑thisStruct.fieldDesc[originalIndex][0]
+                        fieldType[originalIndex + j] ↩ fieldTypeLength                       ↑fieldType[originalIndex][0]
+                        fieldDesc[originalIndex + j] ↩ (≠fieldDesc[originalIndex])↑fieldDesc[originalIndex][0]
                     }
                 }⍟⊢additionalFields > 0
             }⍟⊢∧´"struct"‿"/"≢¨6‿1↑¨<fieldLine
-        }⍟⊢∧´(' '∾@+9)≠⊑l⊑linesPtr
+        }⍟⊢∧´' '‿tab≠⊑l⊑linesPtr
 
         l+↩1
     }•_while_{𝕊:'}'≠⊑l⊑linesPtr}@
 
-    thisStruct.fieldType[j] ← ⟨⟩
+    fieldType[j] ← ⟨⟩
 
     # Move array sizes from name to type
-    For (j←0)‿{𝕊:j < thisStruct.fieldCount}‿{𝕊:j+↩1}‿{
+    For (j←0)‿{𝕊:j < fieldCount}‿{𝕊:j+↩1}‿{
         # Move array size from name to type
-        thisStruct.fieldType[j] ∾⟜<↩ 1↓¯1↓∨`∘=⟜'['⊸/ thisStruct.fieldName[j]
+        fieldType[j] ∾⟜<↩ 1↓¯1↓∨`∘=⟜'['⊸/ fieldName[j]
     }
+    name‿desc‿fieldCount‿fieldType‿fieldName‿fieldDesc
 }¨structLines
 
 # Alias info data
 aliases ← {𝕤
+    type←"" # Alias type
+    name←"" # Alias name
+    desc←"" # Alias description
+
     # Description from previous line
-    thisaliasInfo←aliasInfo
-    thisaliasInfo.desc↩GetDescription lines[𝕩 - 1]
 
     linePtr ← 𝕩⊑lines
 
@@ -529,39 +479,47 @@ aliases ← {𝕤
 
     # Type
     typeStart ← c
-    {𝕊:c+↩1}•_while_{𝕊:linePtr[c]≠' '}@
+    {𝕊:c+↩1}•_while_{𝕊:' '≠c⊑linePtr}@
     typeLen ← c - typeStart
-    thisaliasInfo.type ↩ typeLen↑linePtr[typeStart]
+    type ↩ typeLen↑typeStart↓linePtr
 
     # Skip space
-    c+↩1
+    c+↩≠" "
 
     # Name
     nameStart ← c
-    {𝕊:c+↩1}•_while_{𝕊:linePtr[c]≠';'}@
+    {𝕊:c+↩1}•_while_{𝕊:';'≠c⊑linePtr}@
     nameLen ← c - nameStart
-    thisaliasInfo.name↩nameLen↑linePtr[nameStart]
+    name↩nameLen↑nameStart↓linePtr
 
     # Description
-    thisaliasInfo.desc ↩ GetDescription c⊑linePtr
+    desc ⊣⍟(""⊸≡)↩ GetDescription lines⊑˜𝕩-1
+    desc ↩ GetDescription c⊑linePtr
+    type‿name‿desc
 }¨aliaslines
 
 enums ← {
-    thisenumInfo←enumInfo
+    name         ← ""
+    desc         ← ""
+    valueCount   ← ⟨⟩
+    valueName    ← ""
+    valueInteger ← ⟨⟩
+    valueDesc    ← ""
+
     # Parse enum description
     # NOTE: This is not necessarily from the line immediately before,
     # some of the enums have extra lines between the "description"
     # and the typedef enum
     break ← 1
-    For (j←𝕩-1)‿{𝕊:break∧j > 0}‿{j-↩1}‿{𝕤
+    For (j←𝕩-1)‿{𝕊:break∧j > 0}‿{𝕊:j-↩1}‿{𝕤
         linePtr ← j⊑lines
         {𝕤
-            thisenumInfo.desc ↩ GetDescription lines⊑˜j+1
+            desc ↩ GetDescription lines⊑˜j+1
             break↩0
         }⍟⊢('/'≠⊑linePtr) ∨ ' '≠2⊑linePtr
     }
     break↩1
-    For (j=1)‿{𝕊:break∧j<max_enum_values×2}‿{j+↩1}‿{   # Maximum number of lines following enum first line
+    For (j=1)‿{𝕊:break∧j<max_enum_values×2}‿{𝕊:j+↩1}‿{𝕤   # Maximum number of lines following enum first line
         linePtr ← lines⊑˜j+i⊑enumLines
 
         (≥⟜'A'∧'Z'⊸≥)linePtr[0]?
@@ -575,7 +533,7 @@ enums ← {
             # We start reading the value name
             c ← 0
             {𝕤
-                thisenumInfo.valueName[thisenumInfo.valueCount][c] ↩ linePtr[c]
+                valueName[valueCount][c] ↩ linePtr[c]
                 c+↩1
             }•_while_{𝕊:∧´(c⊑linePtr)≠", ="∾@}@
 
@@ -590,15 +548,9 @@ enums ← {
                 # Two options:
                 #  '='  -> value is provided
                 #  ' '  -> value is equal to previous + 1, there could be a description if not '\0'
-                foundValue ← 0
-                 
-                {𝕤
-                    {𝕤
-                        foundValue ↩ 1
-                        break↩0
-                    }⍟⊢'='=linePtr[c]
-                    c+↩1
-                }•_while_{𝕊:∧´@‿'/'≠c⊑linePtr}@
+                n←∧`'/'≠c↓linePtr
+                foundValue ↩ ⊑'='∊n/c↓linePtr
+                c+↩+´n
 
                 {foundValue?
                     c+↩1+' '=linePtr⊑˜c+1
@@ -607,60 +559,58 @@ enums ← {
                     n←0
                     integer ← ⟨⟩
 
-                    {
+                    {𝕤
                         integer[n] ↩ linePtr[c]
                         c+↩1 ⋄ n+↩1
                     }⍟⊢∧´','‿' '‿@≠c⊑linePtr
 
-                    thisenumInfo.valueInteger[thisenumInfo.valueCount] ↩ •ParseFloat integer
+                    valueInteger[valueCount] ↩ •ParseFloat integer
                 ;
-                    thisenumInfo.valueInteger[thisenumInfo.valueCount] ↩ 1+thisenumInfo.valueInteger[thisenumInfo.valueCount - 1]
+                    valueInteger[valueCount] ↩ 1+valueInteger[valueCount - 1]
                 }
             ;
-                thisenumInfo.valueInteger[thisenumInfo.valueCount] ↩ 1+thisenumInfo.valueInteger[thisenumInfo.valueCount - 1]
+                valueInteger[valueCount] ↩ 1+valueInteger[valueCount - 1]
             }
 
             # Parse value description
-            thisenumInfo.valueDesc[thisenumInfo.valueCount] ↩ GetDescription c⊑linePtr
+            valueDesc[valueCount] ↩ GetDescription c⊑linePtr
 
-            thisenumInfo.valueCount+↩1
+            valueCount+↩1
     ;
         linePtr[0] = '}'?
         
             # Get enum name from typedef
             c ← 0
             {𝕤
-                thisenumInfo.name[c] ↩ linePtr⊑˜2 + c
+                name[c] ↩ linePtr⊑˜2 + c
                 c+↩1
             }•_while_{𝕊:';'≠linePtr⊑˜2+c}@
 
             break↩0  # Enum ended, break for() loop
     ;@
     }
+    name‿desc‿valueCount‿valueName‿valueInteger‿valueDesc
 }¨enumLines
 
 callbacks ← {
-    thisfunctionInfo←functioninfo
-    linePtr ← lines⊑˜𝕩
-
     # Skip "typedef "
-    c ← 8
+    c ← ≠"typedef"
 
     # Return type
     retTypeStart ← c
-    {𝕊:c+↩1}•_while_{𝕊:'('≠c⊑linePtr}@
-    retTypeLen ← c - retTypeStart
-    {𝕊:retTypeLen-↩1}•_while_{𝕊:' '=linePtr⊑˜retTypeStart+retTypeLen-1}
-    thisfunctionInfo.retType ↩ retTypeLen↑linePtr⊑˜retTypeStart
+    c+↩+´∧`'('≠c↓𝕩
+    retTypeLen ← c-retTypeStart
+    retTypeLen-↩+´∧`' '≠⌽𝕩↑˜retTypeStart+retTypeLen-1
+    retType ← retTypeLen↑retTypeStart↓𝕩
 
     # Skip "(*"
     c +↩ ≠"(*"
 
     # Name
     nameStart←c
-    {𝕊:c+↩1}•_while_{𝕊:')'≠linePtr⊑˜c}@
+    c+↩+´∧`')'≠c↓𝕩
     nameLen ← c - nameStart
-    thisfunctionInfo.name↩nameLen↑linePtr⊑˜nameStart
+    name ← nameLen↑nameStart↓𝕩
 
     # Skip ")("
     c +↩ ≠")("
@@ -668,32 +618,33 @@ callbacks ← {
     # Params
     paramStart ← c
     break←1
-    For c‿{𝕊:break∧c<max_line_length}‿{𝕊:c+↩1}‿{𝕤
-        {𝕤
-            # Get parameter type + name, extract info
-            paramLen ← c - paramStart
-            thisfunctionInfo.paramType[thisfunctionInfo.paramCount]‿thisfunctionInfo.paramName[thisfunctionInfo.paramCount] ↩ GetDataTypeAndName (paramStart⊑linePtr)‿paramLen
-            thisfunctionInfo.paramCount+↩1
-            paramStart ↩ c+1
-            {𝕊:paramStart+↩1}•_while_{𝕊:' '=paramStart⊑linePtr}
-        }⍟⊢∨´"),"=c⊑linePtr
-        {𝕊:break↩0}⍟⊢')'=c⊑linePtr
-    }
+    
+    # ⟨paramType‿paramName, ...⟩
+    [paramTypes,paramNames] ← ⍉>GetDataTypeAndName¨ ',' ((⊢-˜+`×¬)∘=⊔⊢) ∧`∘≠⟜')'c↓linePtr
+    # Move array sizes from name to type
+    paramTypes∾¨↩1↓¨¯1↓¨∨`∘=⟜'['⊸/¨paramNames
 
     # Description
-    thisfunctionInfo.desc ↩ GetDescription c⊑linePtr
+    desc ← GetDescription c↓𝕩
 
-    thisfunctionInfo.paramType[j] ← ⟨⟩
-
-    # Move array sizes from name to type
-    For (j←0)‿{𝕊:j<thisfunctionInfo.paramCount}‿{𝕊:j+↩1}‿{
-        # Move array size from name to type
-        thisfunctionInfo.paramType[j] ∾⟜<↩ 1↓¯1↓∨`∘=⟜'['⊸/ thisfunctionInfo.paramName[j]
-    }
-}¨callbackLines
+    paramCount←≠paramNames
+    name‿desc‿retType‿paramCount‿paramTypes‿paramNames
+}¨{
+    # Read callback lines
+    # Find callbacks (lines with "typedef ... (* ... )( ... );")
+    m1←"typedef"⊸(⊣≡≠⊸↑)¨𝕩
+    m1∧{(");"⊸≡˘∨`⊸<")("⊸≡˘∧"(*"⊸≡˘)2↕𝕩}¨𝕩
+}⊸/lines
 
 funcs←{
-    this2functionInfo←functionInfo
+    name       ← ""
+    desc       ← ""
+    retType    ← ""
+    paramCount ← ⟨⟩
+    paramType  ← ""
+    paramName  ← ""
+    paramDesc  ← ""
+
     linePtr ← lines⊑˜𝕩
 
     funcParamsStart ← 0
@@ -701,7 +652,7 @@ funcs←{
 
     # Get return type and function name from func line
     break←1
-    For (c←0)‿{𝕊:break∧(c<max_line_length)∧(c⊑linePtr)≠10+@}‿{𝕊:c+↩1}‿{𝕤
+    For (c←0)‿{𝕊:break∧(c<≠linePtr)∧(c⊑linePtr)≠10+@}‿{𝕊:c+↩1}‿{𝕤
         # Starts function parameters
         {𝕤
             funcParamsStart ↩ c + 1
@@ -711,24 +662,24 @@ funcs←{
             funcRetTypeNameLen ← c-dc     # Substract `define` ("RLAPI " for raylib.h)
             funcRetTypeName ← funcRetTypeNameLen↑dc⊑linePtr
 
-            this2functionInfo.retType‿this2functionInfo.name ↩ GetDataTypeAndName funcRetTypeName‿funcRetTypeNameLen
+            retType‿name ↩ GetDataTypeAndName funcRetTypeName‿funcRetTypeNameLen
             break↩0
         }⍟⊢'('=c⊑linePtr
     }
 
     # Get parameters from func line
     break↩1
-    For (c←funcParamsStart)‿{𝕊:break∧c<max_line_length}‿{𝕊:c+↩1}‿{
+    For (c←funcParamsStart)‿{𝕊:break∧c<≠linePtr}‿{𝕊:c+↩1}‿{
         linePtr[c] = ','?     # Starts function parameters
             # Get parameter type + name, extract info
             funcParamTypeNameLen ← c-funcParamsStart
             funcParamTypeName ← funcParamTypeNameLen↑funcParamsStart⊑linePtr
 
-            this2functionInfo.paramType[this2functionInfo.paramCount] ‿ this2functionInfo.paramName[this2functionInfo.paramCount] ← GetDataTypeAndName funcParamTypeName‿funcParamTypeNameLen
+            paramType[paramCount] ‿ paramName[paramCount] ← GetDataTypeAndName funcParamTypeName‿funcParamTypeNameLen
 
             funcParamsStart ↩ c+1
             {𝕊:funcParamsStart +↩ 1}⍟⊢' '=linePtr⊑˜c+1
-            this2functionInfo.paramCount+↩1      # Move to next parameter
+            paramCount+↩1      # Move to next parameter
 
         ; linePtr[c] = ')'?
 
@@ -741,23 +692,24 @@ funcs←{
             funcParamTypeNameLen ← c-funcParamsStart
             funcParamTypeName ← funcParamTypeNameLen↑funcParamsStart⊑linePtr
 
-            this2functionInfo.paramType[this2functionInfo.paramCount] ‿ this2functionInfo.paramName[this2functionInfo.paramCount] ← GetDataTypeAndName funcParamTypeName‿funcParamTypeNameLen
+            paramType[paramCount] ‿ paramName[paramCount] ← GetDataTypeAndName funcParamTypeName‿funcParamTypeNameLen
 
-            this2functionInfo.paramCount+↩1      # Move to next parameter
+            paramCount+↩1      # Move to next parameter
             break↩0
         ;@
     }
 
     # Get function description
-    this2functionInfo.desc↩GetDescription funcEnd⊑linePtr
+    desc↩GetDescription funcEnd⊑linePtr
 
-    this2functionInfo.paramType[j]←⟨⟩
+    paramType[j]←⟨⟩
 
     # Move array sizes from name to type
-    For (j = 0)‿{𝕊:j < this2functionInfo.paramCount}‿{𝕊:j+↩1}‿{𝕤
+    For (j←0)‿{𝕊:j < paramCount}‿{𝕊:j+↩1}‿{𝕤
         # Move array size from name to type
-        this2functionInfo.paramType[j] ∾⟜<↩ 1↓¯1↓∨`∘=⟜'['⊸/ this2functionInfo.paramName[j]
+        paramType[j] ∾⟜<↩ 1↓¯1↓∨`∘=⟜'['⊸/ paramName[j]
     }
+    name‿desc‿retType‿paramCount‿paramType‿paramName‿paramDesc
 }¨funcLines
 
 # At this point, all raylib data has been parsed!
