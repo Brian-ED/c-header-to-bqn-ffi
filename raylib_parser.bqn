@@ -256,7 +256,7 @@ enums ← {
         valueInteger ← ⟨⟩
 
         # We start reading the value name
-        valueName←(∧`∧˝", ="≠⌜⊢)⊸/𝕩
+        valueName←(∧`·∧˝", ="≠⌜⊢)⊸/𝕩
 
         # After the name we can have:
         #  '='  -> value is provided
@@ -269,26 +269,34 @@ enums ← {
         #  '='  -> value is provided
         #  ' '  -> value is equal to previous + 1, there could be a description if not '\0'
         
-        valuesUnparsed←' '⊸≠⊸/valueName∾⁼⊏⟜'/'⊸↑𝕩
+        valuesUnparsed←¬∘∊⟜", "⊸/valueName∾⁼⊐⟜'/'⊸↑𝕩
 
-        value ← ('='=⊑)◶⟨@⋄•ParseFloat'='⊸∾⁼⟩valuesUnparsed
+        value ← {"="≡1↑𝕩?
+            {"0x"≡2↑𝕩?
+                16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐2↓𝕩
+            ;
+                •ParseFloat𝕩
+            }'='⊸∾⁼𝕩
+            ;@
+        } valuesUnparsed
 
         # Parse value description
         valueDesc ← GetDescription 𝕩
 
         valueName‿value‿valueDesc
-    }¨(≥⟜'A'∧'Z'⊸≥)∘⊑¨⊸/ ∨`∘≠⟜' '⊸/¨(lines↓˜1+𝕩)/˜m←∧`'}'≠⊑¨lines↓˜1+𝕩
+    }¨(≥⟜'A'∧'Z'⊸≥)∘⊑¨⊸/ ∨`∘≠⟜' '⊸/¨(∧`'}'≠·⊑¨1↑¨⊢)⊸/lines↓˜1+𝕩
     
-    values {𝕩=@?𝕨+1;𝕩}`⌾(1⊸⊑)¨↩
+    values {𝕩=@?𝕨+1;𝕩}`⌾(1⊸⊑¨)↩
+    values •Repr¨⌾(1⊸⊑¨)↩
 
     # Get enum name from typedef
-    name←"} "∾⁼⊏⟜';'⊸↑lines⊑˜1+𝕩
+    name←"} "∾⁼•Show ⊐⟜';'⊸↑ (⊑∘⊐⟜'}'·∾´1↑¨⊢)⊸⊑lines↓˜1+𝕩
 
     name‿desc‿values
 
     # Read enum lines
     # ignore inline enums
-}¨ /("typedef enum {"⊸(⊣≡≠⊸↑)∧∨´∘=⟜';')¨lines
+}¨/("typedef enum {"⊸(⊣≡≠⊸↑)∧∨´∘≠⟜';')¨lines
 
 callbacks ← {
     RLS ← ∨`∘≠⟜' '⊸/
