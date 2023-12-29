@@ -41,7 +41,6 @@ json←•Import"json.bqn"
           - Value description can be provided or not
 "
 
-For ← {I‿C‿P‿A: I@ ⋄ C •_while_ P∘A@}
 
 #----------------------------------------------------------------------------------
 # Types and Structures Definition
@@ -73,10 +72,10 @@ For ← {I‿C‿P‿A: I@ ⋄ C •_while_ P∘A@}
 # NOTE: Useful to parse function parameters and struct fields
 # int *hello
 
-GetDataTypeAndName ← ⌈´∘⊐⟜"* "⊸(↑⋈↓) #‿type‿name: # const char *typeName, int typeNameLen, char *type, char *name)
+GetDataTypeAndName ← (∨`⌾⌽∊⟜"* ">∨`∘=⟜',')⊸(/⋈¬⊸/) #‿type‿name: # const char *typeName, int typeNameLen, char *type, char *name)
 
 # Get comment from a line, do nothing if no comment in line
-GetDescription ← ∨`∘∧⟜«∘=⟜'/'⊸/ # str → description (str)
+GetDescription ← ∨`∘≠⟜' '⊸/2↓∨`∘∧⟜«∘=⟜'/'⊸/ # str → description (str)
 
 # Find first text occurrence within a string
 TextFindIndex ← ⊑¯1∾˜/∘⍷
@@ -84,8 +83,8 @@ TextFindIndex ← ⊑¯1∾˜/∘⍷
 # Get string of define type
 StrDefineType ← ⊑⟜⟨
     "UNKNOWN"
-    "GUARD"
     "MACRO"
+    "GUARD"
     "INT"
     "INT_MATH"
     "LONG"
@@ -105,21 +104,16 @@ lines ← ' '⍟((9+@)⊸≡)¨¨ •FLines inFileName
 defMacro ← "#define"
 CheckHex ← ¬∨´∘=⟜"0123456789abcdefABCDEFxL.+-"
 
-definesNonStripped ← {𝕊linePtr:
+defines ← (∊⊑¨)⊸/ ¯1⊑¨{lastDefines𝕊linePtr:
     type ← 0
-    description ← ""
     ishex ← 0
-    operand ← ""
+    operand ← ⟨⟩
 
-    LS ← ∨`∘=⟜' ' # leading spacing
-    nameAndArgs ← LS⊸/{𝔽defMacro∾⁼𝔽}linePtr # Skip spaces, then defMacro, then spaces again
+    LS ← ∨`∘≠⟜' ' # leading spacing
+    nameAndArgs ← LS⊸/ defMacro∾⁼LS⊸/⊑linePtr # Skip defMacro, then spaces again
 
-    # Extract name
-    defineNameStart ← linePtr-○≠nameAndArgs
-    
-    openBraces ← +`-˝"()"=⌜nameAndArgs
-    
-    nameLen ← defineNameEnd ← (⊐⟜' '≤·⊑⊐⟜'(')◶⟨
+    # Extract name    
+    nameLen ← ≤´∘⊐⟜" ("◶⟨
         1+⊐⟜')'
         ⊐⟜' '
     ⟩ nameAndArgs
@@ -128,125 +122,100 @@ definesNonStripped ← {𝕊linePtr:
 
     # Determine type
     {𝕊:type↩macro}⍟⊢')'=¯1⊑name
-    {𝕊:type↩guard}⍟⊢(0=≠args)∨'/'=⊑args
+    {𝕊:type↩guard}⍟⊢(0=≠args)∨"/"≡1↑args
 
-    {'"'=⊑args? type↩string
-    ;args=○⊑"'"? type↩char
-    ;"CLITERAL(Color)"≡15↑args? type↩color
-    ;⊑args⊑⊸∊'0'+↕10? # Parsing numbers
-        m←∧`∘≠⟜' '⊸/args
-        m2←∨`∘=⟜' '⊸/args
-        isFloat  ← ⊑m∊'.'
+    {
+        """"≡1↑args?
+            type↩string
+    ;
+        "'"≡1↑args?
+            type↩char
+    ;
+        "CLITERAL(Color)"≡15↑args?
+            type↩color
+    ;
+        ⊑"0123456789"∊˜1↑args?
+            chars ← ∧`∘≠⟜' '⊸/args
+            isFloat ← ∨´'.'=chars
+            isHexTemp ← ∨´'x'=chars
 
-        {⊑m∊'x'?
-            {𝕊:ishex↩CheckHex m}⍟⊢isFloat
-
-            # Found a valid number -> update type
-            type⌈↩[
-                int‿long
-                double‿float
-            ]⊑˜isFloat∾(isFloat⊑"Lf")=¯1⊑m2
-        }
+            {𝕤
+                isFloat?
+                    type ↩ (𝕩='f')⊑double‿float
+            ;
+                    type ↩ (𝕩='L')⊑int‿long
+                    isHex ↩ isHexTemp
+            }¨(¬∘«∊⟜"0123456789xL.+-ABCDEFabcdef")⊸/chars
     ;@
     }
 
     # Extracting value
-    fullValue ← ∨`⌾⌽∘≠⟜' '⊸/args/˜¬∨`0∾˜"//"⍷args
+    fullValue ← ∨`⌾⌽∘≠⟜' '⊸/args/˜¬∨`(≠args)↑"//"⍷args
     value ← fullValue↓˜-⊑type∊long‿float # Remove number postfix
 
     # Extracting description
-    desc ← GetDescription args
+    description ← GetDescription args
 
     # Parse defines of type UNKNOWN to find calculated numbers
     isMath ← 1
     {𝕤
+        conds ← (∊⟜"0123456789.">∊⟜"()+-*/ ")value
+        numbers ← conds (¬-˜⊢×·+`»⊸>)⊸⊔ value 
+        operands ← (¬conds) (¬-˜⊢×·+`»⊸>)⊸⊔ value 
+        areNumbers ← ∨´¨∊⟜"0123456789xL.+-abcdefABCDEF"¨numbers
+        isMath↩∧´areNumbers
+        
+        # Read number operand
+        # Found a valid number -> update largestType
+        type ⌈↩ ⌈´{
+            isFloat←∨´('.'=𝕩)∧∧`¬CheckHex¨𝕩
+            [
+                long_math‿int_math
+                float_math‿double_math
+            ]⊑˜isFloat(⊣⋈⊑)"Lf"=⊑𝕩
+        }¨areNumbers/numbers
+        {
+            # Search previous defines for operand
+            # Found operand and it's a number -> update type
+            foundOperands←(∧`≥⟜int∧≤⟜double_math)⊸/((𝕩≡⊑)¨/1⊸⊑¨)2↑¨lastDefines
 
-        For (c←0)‿{𝕊:c<≠value}‿{𝕊:c+↩1}‿{𝕤
-            # Skip operators and whitespace
-            (∨´(c⊑value)="0123456789")∧¬∨´(c⊑value)="()+-*/ "?
-                # Read number operand                
-                m ← ∧`¬"()*/ "∊˜c↓value
-                v ← m/c↓value
-                h ← ∧`¬CheckHex¨v
-                isNumber←∨´CheckHex¨v
-                isFloat←∨´'.'=h/v
-                c+↩isNumber++´h
-                
-                isMath ∧↩ isNumber
-                
-                {𝕤
-                    # Found a valid number -> update largestType
-                    type⌈↩[
-                        INT_MATH‿LONG_MATH
-                        DOUBLE_MATH‿FLOAT_MATH
-                    ]⊑˜isFloat⋈(isFloat⊑"Lf")=value⊑˜c-1
-                }⍟⊢isNumber
-        ;
-                # Read string operand
-                operandStart ← c
-                c+↩+´¬∨`" ()+-*/"∊˜c↓value
-                operandEnd ← c
-
-                # Search previous defines for operand
-                operand ↩ operandStart↓operandEnd↑value
-        }
-
+            type⌈↩⌈´foundOperands
+            isMath∧↩0<≠foundOperands
+        }¨operands
+        {𝕤
+            # Define is a calculated number -> update type
+            mathTypes ← int_math‿long_math‿float_math‿double_math‿type
+            type↩mathTypes⊑˜⊑int‿long‿float‿double⊐type
+        }⍟⊢isMath
     }⍟⊢type=unknown
-
-    name‿type‿value‿description‿ishex‿operand‿isMath
-}¨↓⟜lines¨/defMacro⊸(⊣≡≠⊸↑)¨∨`∘=⟜' '⊸/¨lines
-
-# Skip duplicates
-definesWithRefs ← (∊⊑¨)⊸/definesNonStripped
-
-# solve refrences to previously defined defines
-defines←{lastDefines𝕊name‿type‿value‿description‿ishex‿operand‿isMath:
-    foundOperand ← ∨´{𝕊lastname‿lasttype‿lastvalue‿lastdescription‿lastishex‿lastoperand:
-        ((≥⟜int∧≤⟜double_math) lastType)∧lastname ≡ operand?
-            type ⌈↩ lastType
-            1
-    ;0
-    }¨lastDefines
-
-    isMath>↩foundOperand
-
-    {𝕤
-        # Define is a calculated number -> update type
-        type {
-            𝕩 = int    ? int_math
-            𝕩 = long   ? long_math
-            𝕩 = float  ? float_math
-            𝕩 = double ? double_math
-        }↩
-    }⍟⊢isMath
-
-
-    name‿type‿value‿description‿ishex‿operand
-}{(¯1↓𝕩)𝔽¨¯1⊑𝕩}¨1↓↑definesWithRefs
-
+    lastNames←⊑¨lastDefines
+    𝕨 ∾⟜< name‿type‿value‿description‿ishex‿operand
+}`´(<⟨⟩)⋈↓⟜lines¨/defMacro⊸(⊣≡≠⊸↑)¨∨`∘≠⟜' '⊸/¨lines
 
 # Structs info data
 structs ← {𝕤
     linesPtr ← 𝕩↓lines
 
     # Parse struct description
-    desc ← GetDescription (𝕩-1)⊑linesPtr
+    desc ← GetDescription (𝕩-1)⊑lines
 
     # Get struct name: typedef struct name {
     name←' '⊸≠⊸/∧`∘≠⟜'{'⊸/"typedef struct "∾⁼⊑linesPtr
 
     # Get struct fields and count them -> fields finish with ;
-    fields ← ⟨⟩∾´{
+    fields ← ∾´{
         fieldType‿fieldNamesUnparsed ← GetDataTypeAndName ⊐⟜';'⊸↑𝕩
-        fieldNames←','((⊢-˜+`×¬)∘=⊔⊢)fieldNamesUnparsed
-        fieldDesc ← GetDescription 𝕩
+        fieldType ∨`∘≠⟜' '⊸/⌾⌽↩
+        fieldNames ← ','((⊢-˜+`×¬)∘=⊔⊢)fieldNamesUnparsed
+        fieldNames ∨`∘≠⟜' '⊸/¨↩
+        fieldDesc  ←  GetDescription 𝕩
 
         # Move type len info from name to type
-        fieldTypes ← {fieldType∾1↓¯1↓∨`∘=⟜'['⊸/𝕩}¨fieldnames
+        fieldTypes ← {fieldType∾∨`∘=⟜'['⊸/𝕩}¨fieldnames
         fieldnames ∧`∘≠⟜'['⊸/¨↩
 
-        (<fieldDesc)∾˘fieldTypes≍˘fieldNames
-    }⍟((' '≠⊑)∧·∧´"struct"‿"/"≢¨6‿1↑¨<)¨(∧`'}'=·∾1⊸↑¨)⊸/1↓linesPtr
+        (<fieldDesc)⊸∾¨fieldTypes⋈¨fieldNames
+    }¨(∧´"struct"‿"/"‿" "≢¨6‿1‿1↑¨<)¨⊸/∨`∘≠⟜' '⊸/¨(∧`'}'≠·∾´1⊸↑¨)⊸/1↓linesPtr
 
     name‿desc‿fields
 
@@ -266,6 +235,7 @@ aliases ← {𝕤
     linePtr ←𝕩⊑lines
     desc ← (lines⊑˜𝕩-1)⊣⍟(""⊸≡)○GetDescription linePtr
     type‿name ← ' '((¬-˜⊢×·+`»⊸>)∘≠⊔⊢)"typedef "∾⁼⊐⟜'/'⊸↑linePtr  
+    name ∾⟜";"⁼↩
     type‿name‿desc
 }¨/(∨´∘=⟜';'∧"typedef"⊸(⊣≡≠⊸↑)∧2=(+´' '⊸=>∨`∘=⟜';'))¨lines # Find aliases (lines with "typedef ... ...;")
 
@@ -373,7 +343,7 @@ funcs←{
 •Out"Input file:  "∾inFileName
 •Out"Output file: "∾outFileName
 
-EscapeBackslashes←∾'\'⊸=◶⋈‿"//"¨
+EscapeBackslashes←∾'\'⊸=◶⋈‿"\\"¨
 # Export parsed data in json
 parsedData ← ∾⟨
     ⋈"{"
@@ -384,7 +354,7 @@ parsedData ← ∾⟨
         ⋈"    {"
         ⋈"      ""name"": """∾name∾""","
         ⋈"      ""type"": """∾(StrDefineType type)∾""","
-        {isHex? # INT or LONG
+        ⋈{isHex? # INT or LONG
             "      ""value"": "∾(16⊸×⊸+˜´⌽value⊐˜∾"0A"+⟜↕¨10‿6)∾","
         ;∨´type = INT‿LONG‿FLOAT‿DOUBLE‿STRING?
             "      ""value"": "∾value∾','
@@ -397,19 +367,18 @@ parsedData ← ∾⟨
     ⋈"  ],"
     # Print structs info
     ⋈"  ""structs"": ["
-    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿desc‿fields:⟨
+    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿desc‿fields:∾⟨
         ⋈"    {"
         ⋈"      ""name"": """∾name∾""","
         ⋈"      ""description"": """∾(EscapeBackslashes desc)∾""","
         ⋈"      ""fields"": ["
-        ∾¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢){𝕊fieldDesc‿fieldType‿fieldName:⟨
+        ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´{𝕊fieldDesc‿fieldType‿fieldName:⟨
             "        {"
             "          ""type"": """∾fieldType∾""","
             "          ""name"": """∾fieldName∾""","
             "          ""description"": """∾(EscapeBackslashes fieldDesc)∾""""
             "        },"
-        ⟩}¨<˘fields
-
+        ⟩}¨fields
         ⋈"      ]"
         ⋈"    },"
     ⟩}¨structs
@@ -457,7 +426,7 @@ parsedData ← ∾⟨
         ⋈"      ""description"": """∾(EscapeBackslashes desc)∾""",",
         ⋈"      ""returnType"": """∾retType∾""","
         ⋈"      ""params"": ["
-        ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾paramTypes{𝕊p:
+        ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾paramTypes{
             "        {"
             "          ""type"": """∾𝕨∾"""," 
             "          ""name"": """∾𝕩∾""""  
@@ -478,13 +447,12 @@ parsedData ← ∾⟨
             ⋈"      ""returnType"": """∾retType∾""","
             ∾⟨
                 ⋈"      ""params"": ["
-                ∾paramTypes{
+                ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾paramTypes{
                     ⟨
                         "        {"
                         "          ""type"": """∾𝕨∾""","
                         "          ""name"": """∾𝕩∾'"'
-                        "        }"
-                        ","
+                        "        },"
                     ⟩
                 }¨paramNames
                 ⋈"      ]"
@@ -497,4 +465,4 @@ parsedData ← ∾⟨
     ⋈"}"
 ⟩
 
-outFileName •FLines •SHow¨ parsedData
+outFileName •FLines parsedData
