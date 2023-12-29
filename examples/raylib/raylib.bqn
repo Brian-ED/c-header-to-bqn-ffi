@@ -1,7 +1,8 @@
 
 ⟨raylibPath⟩ ← •Import "src/loadConfig.bqn"
 r ⇐ MakeImporter raylibPath
-⟩rAYLIB_VERSION_MAJOR ⇐ 5     #
+
+rAYLIB_VERSION_MAJOR ⇐ 5     #
 rAYLIB_VERSION_MINOR ⇐ 0     #
 rAYLIB_VERSION_PATCH ⇐ 0     #
 rAYLIB_VERSION       ⇐ "5.0" #
