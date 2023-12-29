@@ -1,7 +1,9 @@
 # Command line variables
-inFileName ← "./examples/raylib/raylib.h"
-outFileName ← "./examples/raylib/raylib.json"
+inFileName ← "./examples/raygui/raygui.h"
+outFileName ← "./examples/raygui/raygui.json"
 apiDefine ← "RLAPI"       # Functions define (i.e. RLAPI for raylib.h)
+
+# mistakes: TraceLog TextFormat (to do with "...")
 
 json←•Import"json.bqn"
 
@@ -194,7 +196,7 @@ defines ← (∊⊑¨)⊸/ ¯1⊑¨{lastDefines𝕊linePtr:
 
 # Structs info data
 structs ← {𝕤
-    linesPtr ← 𝕩↓lines
+    linesPtr ← ∨`∘≠⟜' '⊸/¨𝕩↓lines
 
     # Parse struct description
     desc ← GetDescription (𝕩-1)⊑lines
@@ -225,7 +227,7 @@ structs ← {𝕤
     # ending with "} ... ;"
     # i.e. excluding "typedef struct rAudioBuffer rAudioBuffer;" -> Typedef and forward declaration only
 }¨/{
-    [m1,m2]←"typedef struct"‿"struct"(⊣≡≠⊸↑)⌜𝕩
+    [m1,m2]←"typedef struct"‿"struct"(⊣≡≠⊸↑)⌜ ∨`∘≠⟜' '⊸/¨𝕩
     m1∧m2«⊸∨<´∘⊐⟜"{;"¨𝕩
 } lines
 
@@ -244,7 +246,7 @@ enums ← {
     # NOTE: This is not necessarily from the line immediately before,
     # some of the enums have extra lines between the "description"
     # and the typedef enum
-    desc ← GetDescription ⊑(∧`("// "≡3⊸↑)¨)⊸/⌾⌽𝕩↑lines
+    desc ← GetDescription ⟨⟩⊸≡◶⊑‿""(∧`("// "≡3⊸↑)¨)⊸/⌾⌽𝕩↑lines
 
     # Parse enum value line, possible options:
     #ENUM_VALUE_NAME,
@@ -284,13 +286,13 @@ enums ← {
         valueDesc ← GetDescription 𝕩
 
         valueName‿value‿valueDesc
-    }¨(≥⟜'A'∧'Z'⊸≥)∘⊑¨⊸/ ∨`∘≠⟜' '⊸/¨(∧`'}'≠·⊑¨1↑¨⊢)⊸/lines↓˜1+𝕩
+    }¨((≥⟜'A'∧'Z'⊸≥)∘⊑¨1↑¨⊢)⊸/ ∨`∘≠⟜' '⊸/¨(∧`'}'≠·⊑¨1↑¨⊢)⊸/lines↓˜1+𝕩
     
     values {𝕩=@?𝕨+1;𝕩}`⌾(1⊸⊑¨)↩
     values •Repr¨⌾(1⊸⊑¨)↩
 
     # Get enum name from typedef
-    name←"} "∾⁼•Show ⊐⟜';'⊸↑ (⊑∘⊐⟜'}'·∾´1↑¨⊢)⊸⊑lines↓˜1+𝕩
+    name←"} "∾⁼⊐⟜';'⊸↑ (⊑∘⊐⟜'}'·∾´1↑¨⊢)⊸⊑lines↓˜1+𝕩
 
     name‿desc‿values
 
@@ -313,7 +315,8 @@ callbacks ← {
 
     # Move array sizes from name to type
     paramTypes∾¨↩⊐⟜'['⊸↓¨paramNames
-    paramNames ⊐⟜'['⊸↓↩
+    paramNames ⊐⟜'['⊸↑¨↩
+    paramTypes (∨`∧∨`⌾⌽)∘≠⟜' '⊸/¨↩
 
     # Description
     desc ← GetDescription 𝕩
@@ -324,13 +327,14 @@ callbacks ← {
     # Read callback lines
     # Find callbacks (lines with "typedef ... (* ... )( ... );")
     m1←"typedef"⊸(⊣≡≠⊸↑)¨𝕩
-    m1∧{((∨´");"⊸≡˘)<(∨´")("⊸≡˘)∧(∨´"(*"⊸≡˘))2↕" "⍟(""⊸≡)𝕩}¨𝕩
+    m1∧{((∨´");"⊸≡˘)∧(∨´")("⊸≡˘)∧(∨´"(*"⊸≡˘))2↕" "⍟(""⊸≡)𝕩}¨𝕩
 }⊸/lines
 
 funcs←{
     funcSignature ← 𝕩∾⁼˜apiDefine∾' '
 
     retType‿name ← GetDataTypeAndName ⊐⟜'('⊸↑funcSignature
+    retType (∨`∧∨`⌾⌽)∘≠⟜' '⊸/↩
 
     [paramTypes⋄paramNames]←⟨⟩⊸≢◶⟨↕2‿0⋄⍉>⟩("void"≢¯4⊸↑)◶⟨
         ⟨⟩ ⋄ {GetDataTypeAndName¨(∨`∧∨⟜«)∘≠⟜' '⊸/¨','((⊢-˜+`×¬)∘=⊔⊢)𝕩}
@@ -338,7 +342,11 @@ funcs←{
 
     # Move array sizes from name to type
     paramTypes∾¨↩⊐⟜'['⊸↓¨paramNames
+    paramTypes (∨`∧∨`⌾⌽)∘≠⟜' '⊸/¨↩
+
     paramNames ⊐⟜'['⊸↑¨↩
+
+    paramTypes‿paramNames {<˘"..."⊸≡◶⟨⋈⋄"..."‿"args"⟩´˘⌾⍉>𝕩}↩
 
     desc ← GetDescription 𝕩
 
@@ -432,15 +440,19 @@ parsedData ← ∾⟨
         ⋈"    {"
         ⋈"      ""name"": """∾name∾""","
         ⋈"      ""description"": """∾(EscapeBackslashes desc)∾""",",
-        ⋈"      ""returnType"": """∾retType∾""","
-        ⋈"      ""params"": ["
-        ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾paramTypes{
-            "        {"
-            "          ""type"": """∾𝕨∾"""," 
-            "          ""name"": """∾𝕩∾""""  
-            "        },"
-        }¨paramNames
-        ⋈"      ]"
+        ⋈"      ""returnType"": """∾retType∾""""∾","/˜⟨⟩≢paramTypes
+        ⟨⟩⍟(⟨⟩≡paramTypes)∾⟨
+            ⋈"      ""params"": ["
+            ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾paramTypes{
+                ⟨
+                    "        {"
+                    "          ""type"": """∾𝕨∾"""," 
+                    "          ""name"": """∾𝕩∾""""  
+                    "        },"
+                ⟩
+            }¨paramNames
+            ⋈"      ]"
+        ⟩
         ⋈"    },"
     ⟩}¨callbacks
     ⋈"  ],"
@@ -452,8 +464,8 @@ parsedData ← ∾⟨
             ⋈"    {"
             ⋈"      ""name"": """∾name∾""","
             ⋈"      ""description"": """∾(EscapeBackslashes desc)∾""","
-            ⋈"      ""returnType"": """∾retType∾""","
-            ∾⟨
+            ⋈"      ""returnType"": """∾retType∾""""∾","/˜⟨⟩≢paramTypes
+            ⟨⟩⍟(⟨⟩≡paramTypes) ∾⟨
                 ⋈"      ""params"": ["
                 ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾paramTypes{
                     ⟨
