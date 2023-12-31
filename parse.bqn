@@ -1,7 +1,7 @@
 ⟨
-  JsonToFFI
-  ParseHeader
-  ToPrettyJson
+  JsonToFFI    # Read json data from json.Parse to metaprogram a ffi file 
+  ParseHeader  # Reads list of characters 𝕩 and optional function prefix 𝕨, outputs header data
+  ToPrettyJson # Reads header data from ParseHeader and makes a pretty json file
 ⟩⇐
 
 json ← •Import "json.bqn"
@@ -88,6 +88,7 @@ mapFuncReturnType ← {
   }
 }
 
+# Read json data from json.Parse to metaprogram a ffi file 
 JsonToFFI ← {𝕊jsonData:
   defines‿structs‿aliases‿enums‿callbacks‿functions←{
     !jsonData⊣˝⊸≡"defines"‿"structs"‿"aliases"‿"enums"‿"callbacks"‿"functions"
@@ -175,7 +176,11 @@ GetDescription ← ∨`∘≠⟜' '⊸/2↓∨`∘∧⟜«∘=⟜'/'⊸/ # str �
 
 defMacro ← "#define"
 
-# Command line variables
+# Reads list of characters 𝕩 (headerChars) that represent a header file.
+# Optional 𝕨 (definePrefix), needed if you want to parse functions. It's the function prefix of choice.
+# Outputs header data.
+# Example1: "RLAPI" ParseHeader •FChars "file-name.h"
+# Example2: ParseHeader •FChars "other-file.h"
 ParseHeader ← {𝕨𝕊headerChars:
   # Example:
   # 𝕨 ← "RLAPI" # Functions define (i.e. RLAPI for raylib.h)
@@ -437,6 +442,7 @@ ParseHeader ← {𝕨𝕊headerChars:
   defines‿structs‿aliases‿enums‿callbacks‿functions
 }
 
+# Reads header data from ParseHeader and makes a pretty json file
 ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿functions:
   EscapeBackslashes←∾'\'⊸=◶⋈‿"\\"¨
 
