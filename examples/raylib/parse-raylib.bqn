@@ -1,9 +1,4 @@
 #!/usr/bin/env bqn
-⟨JsonToFFI⋄ParseHeader⋄ToPrettyJson⟩ ← •Import "../../parse.bqn"
-json ← •Import "../../json.bqn"
-
-inp ← •FChars "raylib.h"
-
-"output-raylib.bqn" •FChars JsonToFFI json.Parse ToPrettyJson "RLAPI" ParseHeader inp
-
+⟨HeaderToFFI⟩ ← •Import "../../parse.bqn"
+"output-raylib.bqn" •FChars "RLAPI" HeaderToFFI •FChars "raylib.h"
 •Out "raylib.bqn successfully generated"

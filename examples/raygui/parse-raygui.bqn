@@ -1,9 +1,4 @@
 #!/usr/bin/env bqn
-⟨JsonToFFI⋄ParseHeader⋄ToPrettyJson⟩ ← •Import "../../parse.bqn"
-json ← •Import "../../json.bqn"
-
-inp ← •FChars "raygui.h"
-
-"output-raygui.bqn" •FChars JsonToFFI json.Parse ToPrettyJson ParseHeader inp
-
+⟨HeaderToFFI⟩ ← •Import "../../parse.bqn"
+"output-raygui.bqn" •FChars HeaderToFFI •FChars "raygui.h"
 •Out "raygui.bqn successfully generated"

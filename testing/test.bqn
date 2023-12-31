@@ -28,36 +28,33 @@ binLocation ← "/tmp/a.out"
 SH "cc"‿parserPath‿"-o"‿binLocation
 
 
-⟨JsonToFFI⋄ParseHeader⋄ToPrettyJson⟩ ← •Import "../parse.bqn"
+ParseHeader‿ToPrettyJson ← •Import "../parse.bqn"
 json ← •Import "../json.bqn"
 
 raylibOutputTestcases ← {𝕊pathToFile:
   path ← ∨`⌾⌽∘=⟜'/'⊸/pathToFile
   headerPath ← ⊑".h"⊸(⊣≡-∘≠⊸↑)¨⊸/(<∾¨•file.List)path
   
-  raylibJsonTempLoc ← "temp.json"
-  tmpHeaderPath ← "temp.h"
+  raylibJsonTempLoc ← "/tmp/temp.json"
+  tmpHeaderPath ← "/tmp/temp.h"
   
   tmpHeaderPath •FChars •FChars headerPath
-  raylibJsonTempLoc •FChars ""
+  
   •Out "Parsing "∾headerPath∾" with raylib_parser.c and parse.bqn"
   SH binLocation‿"-i"‿tmpHeaderPath‿"-o"‿raylibJsonTempLoc‿"-d"‿"RLAPI"
-  •file.Remove tmpHeaderPath
   cMadeJson ← •FChars raylibJsonTempLoc
-  •file.Remove raylibJsonTempLoc
   bqnMadeJson ← (@+10)∾˜ToPrettyJson "RLAPI" ParseHeader •FChars headerPath
   •Out "Parsing successful"
+
   correct ← cMadeJson ≡ bqnMadeJson
   •Out "testcase "∾headerPath∾correct⊑" failed"‿" succeded"
   {𝕤
-    name← ∧`∘≠⟜'.'⊸/∧`⌾⌽∘≠⟜'/'⊸/pathToFile
+    name ← ∧`∘≠⟜'.'⊸/∧`⌾⌽∘≠⟜'/'⊸/pathToFile
     cLoc ← name∾"C.json"
     bqnLoc ← name∾"BQN.json"
     •Out "Outputting files as "∾cLoc∾" and "∾bqnLoc
     cLoc •FChars cMadeJson
     bqnLoc •FChars bqnMadeJson
-  }⍟⊢correct∧outputFailedJSONFiles
+  }⍟⊢correct¬⊸∧outputFailedJSONFiles
   •Out ""
 }¨testFiles
-
-•file.Remove binLocation
