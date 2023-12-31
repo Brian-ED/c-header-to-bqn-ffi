@@ -4,6 +4,6 @@ json ← •Import "../../json.bqn"
 
 inp ← •FChars "raygui.h"
 
-"raygui.bqn" •FChars JsonToFFI json.Parse ToPrettyJson ParseHeader inp
+"output-raygui.bqn" •FChars JsonToFFI json.Parse ToPrettyJson ParseHeader inp
 
 •Out "raygui.bqn successfully generated"
