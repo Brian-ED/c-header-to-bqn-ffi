@@ -467,7 +467,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
       ⟩)∾""","
       ⋈{isHex? # INT or LONG
         "      ""value"": "∾(16⊸×⊸+˜´⌽value⊐˜∾"0A"+⟜↕¨10‿6)∾","
-      ;∨´type = INT‿LONG‿FLOAT‿DOUBLE‿STRING?
+      ;∨´type = int‿long‿float‿double‿string?
         "      ""value"": "∾value∾','
       ;
         "      ""value"": """∾value∾""","
