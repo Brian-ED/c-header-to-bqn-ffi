@@ -1,7 +1,9 @@
 # C-headers to BQN FFI
-For how to use, for now you can look in examples
+parse.bqn is the main file, used on a header file to autogenerate bqn ffi code.
 
-For documentation on FFI, look in https://mlochbaum.github.io/BQN/spec/system.html#foreign-function-interface
+For how to use, you can look in examples. You may look at comments in parse.bqn for how each function works.
+
+For documentation on FFI in BQN, look in https://mlochbaum.github.io/BQN/spec/system.html#foreign-function-interface
 
 # Header file parsing
 The parser scans input to get API information about defines, structs, aliases, enums, callbacks and functions.
@@ -35,14 +37,12 @@ typedef enum {
 ```
 NOTE: 
 Multiple options are supported for enums:
-- If value is not provided, `<valuesInteger[i-1]> + 1` is assigned
-- Value description can be provided or not
+- If value is not provided, `lastValue + 1` is assigned
+- Value description is optional
 
 ## TODO list
-Add docs on how to use.
-Finish testing.
-Work on simplifying parse.bqn. It can be improved a ton.
-Work on removing some constraints.
+- Work on simplifying parse.bqn. It can be improved a ton.
+- Work on removing some constraints.
 
 # Credits
-- raylib's (raylib_parser.c)[https://github.com/raysan5/raylib/blob/710e811b2768e573b3c1a9eb4883f7a552d3d101/parser/raylib_parser.c] was translated to bqn then modified. Without this, this project wouldn't exist.
+- raylib's [raylib_parser.c](https://github.com/raysan5/raylib/blob/710e811b2768e573b3c1a9eb4883f7a552d3d101/parser/raylib_parser.c) was translated to bqn then modified. Without this, this project wouldn't exist. Big thanks to raylib!
