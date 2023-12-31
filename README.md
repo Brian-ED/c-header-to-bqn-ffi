@@ -3,11 +3,6 @@ For how to use, for now you can look in examples
 
 For documentation on FFI, look in https://mlochbaum.github.io/BQN/spec/system.html#foreign-function-interface
 
-## TODO list
-Add docs on how to use.
-Finish testing.
-Work on simplifying parse.bqn. It can be improved a ton.
-
 # Header file parsing
 The parser scans input to get API information about defines, structs, aliases, enums, callbacks and functions.
 All data is divided into pieces, usually as strings.
@@ -43,6 +38,11 @@ Multiple options are supported for enums:
 - If value is not provided, `<valuesInteger[i-1]> + 1` is assigned
 - Value description can be provided or not
 
+## TODO list
+Add docs on how to use.
+Finish testing.
+Work on simplifying parse.bqn. It can be improved a ton.
+Work on removing some constraints.
 
 # Credits
 - raylib's (raylib_parser.c)[https://github.com/raysan5/raylib/blob/710e811b2768e573b3c1a9eb4883f7a552d3d101/parser/raylib_parser.c] was translated to bqn then modified. Without this, this project wouldn't exist.
