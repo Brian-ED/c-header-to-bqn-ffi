@@ -1021,9 +1021,6 @@ int main(int argc, char* argv[])
     // callbacks[] -> We have all the callbacks decomposed into pieces for further analysis
     // funcs[]     -> We have all the functions decomposed into pieces for further analysis
 
-    printf("\nInput file:       %s", inFileName);
-    printf("\nOutput file:      %s", outFileName);
-
     ExportParsedData(outFileName);
 
     free(defines);
@@ -1162,8 +1159,6 @@ static char **GetTextLines(const char *buffer, int length, int *linesCount)
     // Get the number of lines in the text
     int count = 0;
     for (int i = 0; i < length; i++) if (buffer[i] == '\n') count++;
-
-    printf("Number of text lines in buffer: %i\n", count);
 
     // Allocate as many pointers as lines
     char **lines = (char **)malloc(count*sizeof(char *));
