@@ -36,7 +36,7 @@ str  ⇐ "*i8:c8"
 uStr ⇐ "*u8:c8"
 ptr  ⇐ "*:i8"
 
-r ⇐ MakeImporter pathToBinary⇐⊑•args
+r ⇐ MakeImporter pathToBinary ⇐ ⊑•args
 
 ##################################
 # End of setup for easy ffi.     #
