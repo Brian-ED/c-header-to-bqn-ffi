@@ -102,7 +102,7 @@ ToFFI ← {𝕨𝕊data: # pathToBinary←𝕨
     ""
     •FChars "setupMacro.bqn"
     ""
-    "r ⇐ MakeImporter pathToBinary⇐"∾𝕨⊢⊘((⊢∾∾)⟜'"')"⊑•args"
+    "r ⇐ MakeImporter pathToBinary ⇐ "∾𝕨⊢⊘((⊢∾∾)⟜'"')"⊑•args"
     ""
     "##################################"
     "# End of setup for easy ffi.     #"
