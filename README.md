@@ -5,6 +5,12 @@ For how to use, you can look in examples. You may look at comments in parse.bqn 
 
 For documentation on FFI in BQN, look in https://mlochbaum.github.io/BQN/spec/system.html#foreign-function-interface
 
+# Output ffi file
+The outputted bqn code has some special code alongside your ffi functions.
+First, it automatically terminates null-terminating strings (type "*i8:c8") with null. This is to make using c-strings more seamless and less error prone. The outputted ffi file also has error handling, and allows giving 𝕨 to the MakeImporter function, and if 𝕨 is 1 then it prints every use of an ffi function. Like super print debugging.
+
+The functions may have some duplicates, with names ending with Ref or Raw. When a function name ends with Ref, and assuming no name collisions happened, the mutable pointers of the function are instead using &ptr in the decloration. In basic terms, you can give a bqn array instead of a pointer and the mutated result gets given instead of mutating input. There are plenty of reasons to use either version so both are left in the output. The Raw postfix means that a pointer's type was const, so type "*i8" can be used instead of a pointer, and you may want either option so both are left in.
+
 # Header file parsing
 The parser scans input to get API information about defines, structs, aliases, enums, callbacks and functions.
 All data is divided into pieces, usually as strings.
