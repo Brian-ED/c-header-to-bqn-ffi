@@ -9,6 +9,7 @@ json ← •Import "json.bqn"
 
 # util functions
 nl ← @+10 # newline
+wnl ← @+13 # windows newline prefix
 Box ← ⟨⟩⊸≡◶⟨>⋄↕0‿0⟩⊢»¨⟜<' '⥊˜0⌈´≠¨
 LowerNames ← +⟜(32×1="A["⊸⍋)⌾(1↑⎉1⊢)⍟(⟨⟩⊸≢)
 _MetaParse ← {∾˘´[𝕗,𝕨]{F‿w𝕊𝕩:<w⊸∾˘Box F𝕩}˘○⍉⍉∘[⟨⟩⋄⟨⟩⋄⟨⟩]⍟(⟨⟩⊸≡)𝕩}
@@ -201,7 +202,7 @@ ParseHeader ← {𝕨𝕊headerChars:
   # 𝕨 ← "RLAPI" # Functions define (i.e. RLAPI for raylib.h)
   definePrefix ← 𝕨⊣"NO_FUNCTIONS"
 
-  headerLines ← nl((⊢-˜+`×¬)∘=⊔⊢)headerChars
+  headerLines ← nl((⊢-˜+`×¬)∘=⊔⊢) wnl⊸≠⊸/ headerChars
 
   lines ← ' '⍟((9+@)⊸≡)¨¨ headerLines
 
@@ -487,7 +488,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
         "COLOR"
       ⟩)∾""","
       ⋈{isHex? # INT or LONG
-        "      ""value"": "∾(16⊸×⊸+˜´⌽value⊐˜∾"0A"+⟜↕¨10‿6)∾","
+        "      ""value"": "∾(•Repr 16⊸×⊸+˜´⌽value⊐˜∾"0A"+⟜↕¨10‿6)∾","
       ;∨´type = int‿long‿float‿double‿string?
         "      ""value"": "∾value∾','
       ;
