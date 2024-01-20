@@ -12,7 +12,7 @@ nl ← @+10 # newline
 wnl ← @+13 # windows newline prefix
 Box ← ⟨⟩⊸≡◶⟨>⋄↕0‿0⟩⊢»¨⟜<' '⥊˜0⌈´≠¨
 LowerNames ← +⟜(32×1="A["⊸⍋)⌾(1↑⎉1⊢)⍟(⟨⟩⊸≢)
-_MetaParse ← {∾˘´[𝕗,𝕨]{F‿w𝕊𝕩:<w⊸∾˘Box F𝕩}˘○⍉⍉∘[⟨⟩⋄⟨⟩⋄⟨⟩]⍟(⟨⟩⊸≡)𝕩}
+_MetaParse ← {∾˘´[𝕗,𝕨]{F‿w𝕊𝕩:<w⊸∾˘Box F𝕩}˘○⍉↕∘0‿3⍟(⟨⟩⊸≡)𝕩}
 
 remap ← {𝕎𝕏}´{(𝕨⊸≡∧"*"≡1↑⊣)◶⟨⋈⋄𝕩⋈˜1↓⊣⟩´}´¨⟨
   "unsigned char"  ‿"ustr"
@@ -111,18 +111,22 @@ ToFFI ← {𝕨𝕊data: # pathToBinary←𝕨
     "##################################"
     ""
   ⟩
+
+# TODO HANDLE THESE LATER
+#  typedef struct rAudioBuffer rAudioBuffer;
+#  typedef struct rAudioProcessor rAudioProcessor;
+
   top∾∾nl∾¨∨`⌾⌽∘≠⟜' '⊸/¨∾⟨
     { # defines
       exclTypes  ← "GUARD"‿"MACRO"‿"UNKNOWN"‿"FLOAT_MATH"‿"COLOR"
-      Filter ← {𝕊name‿type‿val‿desc:
+      filtered ← {𝕊name‿type‿val‿desc:
         ¬∨´⟨"PI"≡name, ∨´type⊸≡¨exclTypes, ⟨⟩≡val ⟩
-      }
-      filtered ← Filter˘⊸/>defines
+      }˘⊸/(↕0‿4)∾´defines
       <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨,⟨⟩¨,•Repr¨,⊢⟩_MetaParse filtered
     }
     ⋈""
     { # enums
-      [names,descriptions,values]←⍉>enums
+      [names,descriptions,values]←⍉(↕0‿3)∾´enums
       tabled ← >¨⊢˝¨¨ values
       bodys ← (<˘("  ")‿" ⇐ "‿"  # "⟨LowerNames¨,•Repr¨,⊢⟩_MetaParse⊢)¨tabled
       headers ← names LowerNames⊸∾¨<˘" ⇐ { # "⊸∾˘Box descriptions
@@ -130,7 +134,7 @@ ToFFI ← {𝕨𝕊data: # pathToBinary←𝕨
     }
     ⋈""
     { # structs
-      [names,descriptions,fields]←⍉>structs
+      [names,descriptions,fields]←⍉(↕0‿3)∾´structs
       headers ← (MapStructNames names) ∾⟜" ⇐ ⟨ # "⊸∾¨ descriptions
       bodys ← {⟨"⟩"⟩∾˜<˘"  "‿" # "‿"  # "⟨MapStructTypes,⊢,⊢⟩_MetaParse >𝕩}¨⊢˝¨¨fields
       assembled ← headers <⊸∾¨ bodys
@@ -159,11 +163,10 @@ ToFFI ← {𝕨𝕊data: # pathToBinary←𝕨
         ∾⟜"Raw"¨⌾((»s2LinesExtended)⊸/)·∾⟜"Ref"¨⌾((»s1LinesExtended)⊸/)LowerNames¨ ⋄ MapFuncReturnType ⋄ ∾⟜'"'¨ ⋄ MakeConstDistinct MapArgTypes¨ ⋄ (∾' '⊸∾¨)¨ ⋄ ⊢
       ⟩_MetaParse⍟(⟨⟩⊸≢){
         0‿2‿0‿3‿4‿1⊏(3↑𝕩)∾⍉{<˘⍉∘‿2⥊⊢˝˘>⊑𝕩}˘⊢˝𝕩
-      }⌾⍉⍟(⟨⟩⊸≢)(1+s2Lines∨sLines)/>∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
+      }⌾⍉⍟(⟨⟩⊸≢)(1+s2Lines∨sLines)/(↕0‿4)∾´∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
     }
   ⟩
 }
-
 
 # Type of parsed define
 ⟨
@@ -202,17 +205,16 @@ ParseHeader ← {𝕨𝕊headerChars:
   # 𝕨 ← "RLAPI" # Functions define (i.e. RLAPI for raylib.h)
   definePrefix ← 𝕨⊣"NO_FUNCTIONS"
 
-  headerLines ← nl((⊢-˜+`×¬)∘=⊔⊢) wnl⊸≠⊸/ headerChars
+  headerLines ← nl((+`×¬)⊸-∘=⊔⊢) wnl⊸≠⊸/ headerChars
 
   lines ← ' '⍟((9+@)⊸≡)¨¨ headerLines
 
   defines ← (∊⊑¨)⊸/ ¯1⊑¨{lastDefines𝕊linePtr:
-    type ← 0
     ishex ← 0
     operand ← ⟨⟩
 
-    LS ← ∨`∘≠⟜' ' # leading spacing
-    nameAndArgs ← LS⊸/ defMacro∾⁼LS⊸/⊑linePtr # Skip defMacro, then spaces again
+    RLS ← ∨`∘≠⟜' '⊸/ # Remove first spaces
+    nameAndArgs ← RLS defMacro∾⁼(∨`∧∨`⌾⌽)∘≠⟜' '⊸/ ∧`∘∨⟜«∘≠⟜'/'⊸/ ⊑linePtr # Skip defMacro, then spaces again
 
     # Extract name    
     nameLen ← ≤´∘⊐⟜" ("◶⟨
@@ -220,43 +222,37 @@ ParseHeader ← {𝕨𝕊headerChars:
       ⊐⟜' '
     ⟩ nameAndArgs
 
-    name‿args ← nameLen(↑⋈LS⊸/∘↓)nameAndArgs
+    name‿args ← nameLen(↑⋈RLS∘↓)nameAndArgs
 
     # Determine type
-    {𝕊:type↩macro}⍟⊢')'=¯1⊑name
-    {𝕊:type↩guard}⍟⊢(0=≠args)∨"/"≡1↑args
-
-    {
+    type ← {
       """"≡1↑args?
-        type↩string
+        string
     ;
       "'"≡1↑args?
-        type↩char
+        char
     ;
-      "CLITERAL(Color)"≡15↑args?
-        type↩color
+      "CLITERAL(Color)"(⊣≡≠⊸↑)args?
+        color
     ;
       ⊑"0123456789"∊˜1↑args?
-        chars ← ∧`∘≠⟜' '⊸/args
-        isFloat ← ∨´'.'=chars
-        isHexTemp ← ∨´'x'=chars
-
+        chars ← ∧`∘≠⟜' '⊸/args # up to first space
+        isHex ↩ ∨´'x'=chars
         {𝕤
-          isFloat?
-            type ↩ (𝕩='f')⊑double‿float
+          ∨´'.'=chars?
+            double‿float⊑˜'f'=𝕩
         ;
-            type ↩ (𝕩='L')⊑int‿long
-            isHex ↩ isHexTemp
-        }¨(¬∘«∊⟜"0123456789xL.+-ABCDEFabcdef")⊸/chars
-    ;@
+          int‿long⊑˜'L'=𝕩
+        }⊑¬∘«∘∊⟜"0123456789xL.+-ABCDEFabcdef"⊸/chars
+    ;
+      type ← 0‿macro⊑˜")"≡¯1↑name
+      type‿guard⊑˜0=≠args
     }
-
     # Extracting value
-    fullValue ← ∨`⌾⌽∘≠⟜' '⊸/args/˜¬∨`(≠args)↑"//"⍷args
-    value ← fullValue↓˜-⊑type∊long‿float # Remove number postfix
+    value ← args↓˜-⊑type∊long‿float # Remove number postfix
 
     # Extracting description
-    description ← GetDescription args
+    description ← GetDescription ⊑linePtr
 
     # Parse defines of type UNKNOWN to find calculated numbers
     isMath ← 1
@@ -264,26 +260,28 @@ ParseHeader ← {𝕨𝕊headerChars:
       conds ← (∊⟜"0123456789.">∊⟜"()+-*/ ")value
       numbers ← conds (¬-˜⊢×·+`»⊸>)⊸⊔ value 
       operands ← (¬conds) (¬-˜⊢×·+`»⊸>)⊸⊔ value 
-      areNumbers ← ∨´¨∊⟜"0123456789xL.+-abcdefABCDEF"¨numbers
+      areNumbers ← ∧´∘∊⟜"0123456789xL.+-abcdefABCDEF"¨numbers
       isMath↩∧´areNumbers
       
       # Read number operand
       # Found a valid number -> update largestType
       type ⌈↩ ⌈´{
-        isFloat←∨´('.'=𝕩)∧∧`∊⟜"0123456789abcdefABCDEFxL.+-"𝕩
+        isFloat←∨´('.'=𝕩)∧∧`𝕩∊"0123456789abcdefABCDEFxL.+-"
         [
           long_math‿int_math
           float_math‿double_math
         ]⊑˜isFloat(⊣⋈⊑)"Lf"=⊑𝕩
       }¨areNumbers/numbers
-      {
-        # Search previous defines for operand
-        # Found operand and it's a number -> update type
-        foundOperands←(∧`≥⟜int∧≤⟜double_math)⊸/((𝕩≡⊑)¨/1⊸⊑¨)2↑¨lastDefines
 
-        type⌈↩⌈´foundOperands
-        isMath∧↩0<≠foundOperands
+      # Search previous defines for operand
+      # Found operand and it's a number -> update type
+      foundOperands ← {
+        (∧`≥⟜int∧≤⟜double_math)⊸/𝕩⊸≡¨⊸/˝⍉(↕0‿2)∾´2↑¨lastDefines
       }¨operands
+
+      type⌈´↩⌈´¨foundOperands
+      isMath∧´↩0<≠¨foundOperands
+
       {𝕤
         # Define is a calculated number -> update type
         mathTypes ← int_math‿long_math‿float_math‿double_math‿type
@@ -297,23 +295,15 @@ ParseHeader ← {𝕨𝕊headerChars:
   # Structs info data
   structs ← {𝕤
     linesPtr ← ∨`∘≠⟜' '⊸/¨𝕩↓lines
-
-    # Parse struct description
-    desc ← GetDescription (𝕩-1)⊑lines
-
-    # Get struct name: typedef struct name {
-    name←' '⊸≠⊸/∧`∘≠⟜'{'⊸/"typedef struct "∾⁼⊑linesPtr
-
-    # Get struct fields and count them -> fields finish with ;
-    fields ← ∾´{
-      fieldType‿fieldNamesUnparsed ← GetDataTypeAndName ⊐⟜';'⊸↑𝕩
-      fieldType ∨`∘≠⟜' '⊸/⌾⌽↩
-      fieldNames ← ','((⊢-˜+`×¬)∘=⊔⊢)fieldNamesUnparsed
-      fieldNames ∨`∘≠⟜' '⊸/¨↩
-      fieldDesc  ←  GetDescription 𝕩
+    desc ← GetDescription (𝕩-1)⊑lines # Parse struct description
+    name←' '⊸≠⊸/∧`∘≠⟜'{'⊸/"typedef struct "∾⁼⊑linesPtr # Get struct name: typedef struct name {
+    fields ← ∾´{ # Get struct fields and count them -> fields finish with ;
+      fieldType‿fieldNamesUnparsed ← ∨`∘≠⟜' '⊸/⌾⌽¨ GetDataTypeAndName ⊐⟜';'⊸↑𝕩
+      fieldNames ← ∨`∘≠⟜' '⊸/¨ ','((⊢-˜+`×¬)∘=⊔⊢)fieldNamesUnparsed
+      fieldDesc  ← GetDescription 𝕩
 
       # Move type len info from name to type
-      fieldTypes ← {fieldType∾∨`∘=⟜'['⊸/𝕩}¨fieldnames
+      fieldTypes ← fieldType⊸∾¨∨`∘=⟜'['⊸/¨fieldnames
       fieldnames ∧`∘≠⟜'['⊸/¨↩
 
       (<fieldDesc)⊸∾¨fieldTypes⋈¨fieldNames
@@ -374,7 +364,7 @@ ParseHeader ← {𝕨𝕊headerChars:
 
       value ← {"="≡1↑𝕩?
         {"0x"≡2↑𝕩?
-          16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐2↓𝕩
+          16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐-⟜(32×1="a{"⊸⍋)2↓𝕩
         ;
           •ParseFloat𝕩
         }'='⊸∾⁼𝕩
@@ -488,7 +478,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
         "COLOR"
       ⟩)∾""","
       ⋈{isHex? # INT or LONG
-        "      ""value"": "∾(•Repr 16⊸×⊸+˜´⌽value⊐˜∾"0A"+⟜↕¨10‿6)∾","
+        "      ""value"": "∾','∾˜•Repr 16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐-⟜(32×1="a{"⊸⍋)2↓value
       ;∨´type = int‿long‿float‿double‿string?
         "      ""value"": "∾value∾','
       ;
