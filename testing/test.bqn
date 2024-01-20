@@ -48,6 +48,7 @@ raylibOutputTestcases ← {𝕊pathToFile:
 
   correct ← cMadeJson ≡ bqnMadeJson
   •Out "testcase "∾headerPath∾correct⊑" failed"‿" succeded"
+  {𝕊:"c.json"‿"bqn.json" •FChars¨ cMadeJson‿bqnMadeJson}⍟¬correct
   {𝕤
     name ← ∧`∘≠⟜'.'⊸/∧`⌾⌽∘≠⟜'/'⊸/pathToFile
     cLoc ← name∾"C.json"
