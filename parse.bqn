@@ -210,7 +210,6 @@ ParseHeader ← {𝕨𝕊headerChars:
   lines ← ' '⍟((9+@)⊸≡)¨¨ headerLines
 
   defines ← (∊⊑¨)⊸/ ¯1⊑¨{lastDefines𝕊linePtr:
-    ishex ← 0
     operand ← ⟨⟩
 
     RLS ← ∨`∘≠⟜' '⊸/ # Remove first spaces
@@ -225,6 +224,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     name‿args ← nameLen(↑⋈RLS∘↓)nameAndArgs
 
     # Determine type
+    ishex ← 0
     type ← {
       """"≡1↑args?
         string
@@ -289,7 +289,8 @@ ParseHeader ← {𝕨𝕊headerChars:
       }⍟⊢isMath
     }⍟⊢type=unknown
     lastNames←⊑¨lastDefines
-    𝕨 ∾⟜< name‿type‿value‿description‿ishex‿operand
+    value {•Repr 16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐-⟜(32×1="a{"⊸⍋)"0x"∾⁼𝕩}⍟ishex↩
+    𝕨 ∾⟜< name‿type‿value‿description‿operand
   }`´(<⟨⟩)⋈↓⟜lines¨/defMacro⊸(⊣≡≠⊸↑)¨∨`∘≠⟜' '⊸/¨lines
 
   # Structs info data
@@ -458,7 +459,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
 
     # Print defines info
     ⋈"  ""defines"": ["
-    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿type‿value‿description‿ishex‿operand:∾⟨
+    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿type‿value‿description‿operand:∾⟨
       ⋈"    {"
       ⋈"      ""name"": """∾name∾""","
       ⋈"      ""type"": """∾(type⊑⟨
@@ -477,12 +478,11 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
         "STRING"
         "COLOR"
       ⟩)∾""","
-      ⋈{isHex? # INT or LONG
-        "      ""value"": "∾','∾˜•Repr 16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐-⟜(32×1="a{"⊸⍋)2↓value
-      ;∨´type = int‿long‿float‿double‿string?
-        "      ""value"": "∾value∾','
+      ⋈"      ""value"": "∾','∾˜{
+      ∨´type = int‿long‿float‿double‿string?
+        value
       ;
-        "      ""value"": """∾value∾""","
+        '"'∾value∾'"'
       }
       ⋈"      ""description"": """∾description∾""""
       ⋈"    },"
