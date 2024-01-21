@@ -235,7 +235,7 @@
     #define RL_CULL_DISTANCE_NEAR                 0.01      // Default near cull distance
 #endif
 #ifndef RL_CULL_DISTANCE_FAR
-    #define RL_CULL_DISTANCE_FAR                1000.0      // Default far cull distance
+    #define RL_CULL_DISTANCE_FAR                1000        // Default far cull distance
 #endif
 
 // Texture parameters (equivalent to OpenGL defines)
@@ -352,7 +352,6 @@ typedef struct rlVertexBuffer {
     float *texcoords;           // Vertex texture coordinates (UV - 2 components per vertex) (shader-location = 1)
     unsigned char *colors;      // Vertex colors (RGBA - 4 components per vertex) (shader-location = 3)
     unsigned int *indices;      // Vertex indices (in case vertex data comes indexed) (6 indices per quad)
-    unsigned short *indices;    // Vertex indices (in case vertex data comes indexed) (6 indices per quad)
     unsigned int vaoId;         // OpenGL Vertex Array Object id
     unsigned int vboId[4];      // OpenGL Vertex Buffer Objects id (4 types of vertex data)
 } rlVertexBuffer;
@@ -392,7 +391,7 @@ typedef enum {
     RL_OPENGL_43,               // OpenGL 4.3 (using GLSL 330)
     RL_OPENGL_ES_20,            // OpenGL ES 2.0 (GLSL 100)
     RL_OPENGL_ES_30             // OpenGL ES 3.0 (GLSL 300 es)
-} rlOpenGlVersion;
+} rlGlVersion;
 
 // Trace log level
 // NOTE: Organized by priority level
