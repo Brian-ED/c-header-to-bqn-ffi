@@ -108,7 +108,11 @@ mapFuncReturnType ← {
 }
 
 # turns header data from ParseHeader into ffi file characters
-ToFFI ← {𝕊data:
+# 𝕨 is an optional name mapping, used so you can rename functions and fix name collisions
+## Example1: ToFFI ParseHeader file.h
+## Example2: ⟨"bad_name"‿"CoolName"⟩ ToFFI ParseHeader file.h
+ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕0‿2
+  # TODO check validity of names in the mapping
   defines‿structs‿aliases‿enums‿callbacks‿functions←{
     !𝕩⊣˝⊸≡"defines"‿"structs"‿"aliases"‿"enums"‿"callbacks"‿"functions"
     ⊢˝¨¨⌾(0‿1‿3‿4‿5⊸⊏)⊢˝𝕩
@@ -127,61 +131,65 @@ ToFFI ← {𝕊data:
     "##################################"
     ""
   ⟩
+  # so you mean if there are no collisions it's all fine 
+  # but if there are collisions it errors, 
+  # unless you provide the header to ffi script a input
+  # that's a mapping of c names to bqn names
 
-# TODO HANDLE THESE LATER
-#  typedef struct rAudioBuffer rAudioBuffer;
-#  typedef struct rAudioProcessor rAudioProcessor;
+  # TODO HANDLE THESE LATER
+  #  typedef struct rAudioBuffer rAudioBuffer;
+  #  typedef struct rAudioProcessor rAudioProcessor;
 
-  top∾∾nl∾¨∨`⌾⌽∘≠⟜' '⊸/¨∾⟨
-    { # defines
-      exclTypes  ← "GUARD"‿"MACRO"‿"UNKNOWN"‿"FLOAT_MATH"‿"COLOR"
-      filtered ← {𝕊name‿type‿val‿desc:
-        ¬∨´⟨"PI"≡name, ∨´type⊸≡¨exclTypes, ⟨⟩≡val ⟩
-      }˘⊸/(↕0‿4)∾´defines
-      <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨,⟨⟩¨,•Repr¨,⊢⟩_MetaParse filtered
-    }
-    ⋈""
-    { # enums
-      [names,descriptions,values]←⍉(↕0‿3)∾´enums
-      tabled ← >¨⊢˝¨¨ values
-      bodys ← (<˘("  ")‿" ⇐ "‿"  # "⟨LowerNames¨,•Repr¨,⊢⟩_MetaParse⊢)¨tabled
-      headers ← names LowerNames⊸∾¨<˘" ⇐ { # "⊸∾˘Box descriptions
-      ∾headers<⊸∾¨∾⟜⟨"}"⟩¨bodys
-    }
-    ⋈""
-    { # structs
-      [names,descriptions,fields]←⍉(↕0‿3)∾´structs
-      headers ← (MapStructNames names) ∾⟜" ⇐ ⟨ # "⊸∾¨ descriptions
-      bodys ← {⟨"⟩"⟩∾˜<˘"  "‿" # "‿"  # "⟨MapStructTypes,⊢,⊢⟩_MetaParse >𝕩}¨⊢˝¨¨fields
-      assembled ← headers <⊸∾¨ bodys
-      aliasLines←»⊸∨∘≠⟜' '⊸/¨<˘""‿" ⇐ "‿" # "⟨LowerNames¨,MapArgTypes,⊢⟩_MetaParse ⌽⌾(2⊸↑)˘>⊢˝¨aliases
-      p←⊑¨⊢˝¨aliases
-      ∾ ∾∾⟜(⋈⋈)¨⟜aliasLines⌾(¯1⊸↓)assembled⊔˜+`»+˝p≡⌜names
-    }
-    ⋈""
-    { # functions
-      s ← {
-        ((⊑'*'⊸∊)¨∧constText⊸(⊣≢≠⊸↑)¨)1‿0⊸⊑¨¯1⊑𝕩
-      }¨∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
-      sLines←∨´¨s
+  definesDone ← {
+    exclTypes  ← "GUARD"‿"MACRO"‿"UNKNOWN"‿"FLOAT_MATH"‿"COLOR"
+    filtered ← {𝕊name‿type‿val‿desc:
+      ¬∨´⟨"PI"≡name, ∨´type⊸≡¨exclTypes, ⟨⟩≡val ⟩
+    }˘⊸/(↕0‿4)∾´defines
+    <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨,⟨⟩¨,•Repr¨,⊢⟩_MetaParse filtered
+  }
 
-      s2 ← {
-        "const void *"⊸≡¨1‿0⊸⊑¨¯1⊑𝕩
-      }¨∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
-      s2Lines←∨´¨s2
-      !∧´¬s2Lines∧sLines # I don't want the lines to collide
-      
-      sAllLinesExtended ← (↕∘≠⊸+⌾/↑˜+´+≠)s2Lines∨sLines
-      s1LinesExtended‿s2LinesExtended ← s2Lines{((+´+≠)𝕩+𝕨)↑𝕨⊸{((/𝕨)¬∘∊˜𝕩)/𝕩+↕≠𝕩}⌾/𝕨+𝕩}{𝔽⋈𝔽˜}sLines
-      MakeConstDistinct ← (sAllLinesExtended¬⊸×(1+s2Lines∨sLines)/s+2×s2){'⟩'∾˜1↓∾'⋄'∾¨(⊑"ptr"‿"ustr"‿"str"⊐<)◶⟨"""&u8"""⋄"""&u8"""⋄"""&u8:c8"""⋄"""&"⊸∾"""*"⊸∾⁼⟩¨⌾((1=𝕨)⊸/)"""*i8"""¨⌾((2=𝕨)⊸/)𝕩}¨⊢
+  enumsDone ← {
+    [names,descriptions,values]←⍉(↕0‿3)∾´enums
+    tabled ← >¨⊢˝¨¨ values
+    bodys ← (<˘("  ")‿" ⇐ "‿"  # "⟨LowerNames¨,•Repr¨,⊢⟩_MetaParse⊢)¨tabled
+    headers ← names LowerNames⊸∾¨<˘" ⇐ { # "⊸∾˘Box descriptions
+    ∾headers<⊸∾¨∾⟜⟨"}"⟩¨bodys
+  }
 
-      <˘""‿" ⇐ "‿""""‿" _R⟨"‿"#"‿" # "⟨
-        ∾⟜"Raw"¨⌾((»s2LinesExtended)⊸/)·∾⟜"Ref"¨⌾((»s1LinesExtended)⊸/)LowerNames¨ ⋄ MapFuncReturnType ⋄ ∾⟜'"'¨ ⋄ MakeConstDistinct MapArgTypes¨ ⋄ (∾' '⊸∾¨)¨ ⋄ ⊢
-      ⟩_MetaParse⍟(⟨⟩⊸≢){
-        0‿2‿0‿3‿4‿1⊏(3↑𝕩)∾⍉{<˘⍉∘‿2⥊⊢˝˘>⊑𝕩}˘⊢˝𝕩
-      }⌾⍉⍟(⟨⟩⊸≢)(1+s2Lines∨sLines)/(↕0‿4)∾´∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
-    }
-  ⟩
+  structsDone ← {
+    [names,descriptions,fields]←⍉(↕0‿3)∾´structs
+    headers ← (MapStructNames names) ∾⟜" ⇐ ⟨ # "⊸∾¨ descriptions
+    bodys ← {⟨"⟩"⟩∾˜<˘"  "‿" # "‿"  # "⟨MapStructTypes,⊢,⊢⟩_MetaParse >𝕩}¨⊢˝¨¨fields
+    assembled ← headers <⊸∾¨ bodys
+    aliasLines←»⊸∨∘≠⟜' '⊸/¨<˘""‿" ⇐ "‿" # "⟨LowerNames¨,MapArgTypes,⊢⟩_MetaParse ⌽⌾(2⊸↑)˘>⊢˝¨aliases
+    p←⊑¨⊢˝¨aliases
+    ∾ ∾∾⟜(⋈⋈)¨⟜aliasLines⌾(¯1⊸↓)assembled⊔˜+`»+˝p≡⌜names
+  }
+
+  functionsDone ← {
+    s ← {
+      ((⊑'*'⊸∊)¨∧constText⊸(⊣≢≠⊸↑)¨)1‿0⊸⊑¨¯1⊑𝕩
+    }¨∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
+    sLines←∨´¨s
+
+    s2 ← {
+      "const void *"⊸≡¨1‿0⊸⊑¨¯1⊑𝕩
+    }¨∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
+    s2Lines←∨´¨s2
+    !∧´¬s2Lines∧sLines # I don't want the lines to collide
+    
+    sAllLinesExtended ← (↕∘≠⊸+⌾/↑˜+´+≠)s2Lines∨sLines
+    s1LinesExtended‿s2LinesExtended ← s2Lines{((+´+≠)𝕩+𝕨)↑𝕨⊸{((/𝕨)¬∘∊˜𝕩)/𝕩+↕≠𝕩}⌾/𝕨+𝕩}{𝔽⋈𝔽˜}sLines
+    MakeConstDistinct ← (sAllLinesExtended¬⊸×(1+s2Lines∨sLines)/s+2×s2){'⟩'∾˜1↓∾'⋄'∾¨(⊑"ptr"‿"ustr"‿"str"⊐<)◶⟨"""&u8"""⋄"""&u8"""⋄"""&u8:c8"""⋄"""&"⊸∾"""*"⊸∾⁼⟩¨⌾((1=𝕨)⊸/)"""*i8"""¨⌾((2=𝕨)⊸/)𝕩}¨⊢
+
+    <˘""‿" ⇐ "‿""""‿" _R⟨"‿"#"‿" # "⟨
+      ∾⟜"Raw"¨⌾((»s2LinesExtended)⊸/)·∾⟜"Ref"¨⌾((»s1LinesExtended)⊸/)LowerNames¨ ⋄ MapFuncReturnType ⋄ ∾⟜'"'¨ ⋄ MakeConstDistinct MapArgTypes¨ ⋄ (∾' '⊸∾¨)¨ ⋄ ⊢
+    ⟩_MetaParse⍟(⟨⟩⊸≢){
+      0‿2‿0‿3‿4‿1⊏(3↑𝕩)∾⍉{<˘⍉∘‿2⥊⊢˝˘>⊑𝕩}˘⊢˝𝕩
+    }⌾⍉⍟(⟨⟩⊸≢)(1+s2Lines∨sLines)/(↕0‿4)∾´∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
+  }
+
+  top∾∾nl∾¨∨`⌾⌽∘≠⟜' '⊸/¨∾1↓∾⟨""⟩⊸⋈¨definesDone‿enumsDone‿structsDone‿functionsDone
 }
 
 # Type of parsed define
