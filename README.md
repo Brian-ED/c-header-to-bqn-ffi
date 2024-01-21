@@ -50,6 +50,7 @@ Multiple options are supported for enums:
 - Work on simplifying parse.bqn. It can be improved a ton.
 - Work on removing some constraints.
 - Work on inProgress/oneTimeUse.bqn, for users who may not know bqn and want to just make an ffi file right away.
+- progressively cut json handling out of `ToFFI` and `ParseHeader` and move it to `ToPrettyJson`, eventually being able to move `ToPrettyJson` to `testing/test.bqn` and cut it out entirely. Will cut code size by a ton.
 
 # Credits
 - raylib's [raylib_parser.c](https://github.com/raysan5/raylib/blob/710e811b2768e573b3c1a9eb4883f7a552d3d101/parser/raylib_parser.c) was translated to bqn then modified. Without this, this project wouldn't exist. Big thanks to raylib!
