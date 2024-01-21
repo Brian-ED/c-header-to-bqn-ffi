@@ -68,51 +68,57 @@ typeReplacements ← ⍉shortendStructNames∾[
   " "      ‿"void"
 ]
 
-mapArgTypes ← {
-  [bqn,c] ← typeReplacements
-  {
+# turns header data from ParseHeader into ffi file characters
+# 𝕨 is an optional name mapping, used so you can rename functions and fix name collisions
+## Example1: ToFFI ParseHeader file.h
+## Example2: [⟨"bad_name"⟩⋄⟨"CoolName"⟩] ToFFI ParseHeader file.h
+ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
+  # TODO check validity of names in the mapping
+
+  MapNames ← {
+    [old⋄new]←nameMapping
+    (new⊏˜old⊸⊐)⌾((𝕩∊old)⊸/)𝕩
+  }
+
+  mapArgTypes ← {
+    [bqn,c] ← typeReplacements
+    {
+      consts←constText⊸(⊣≡≠⊸↑)¨𝕩
+      s ← ¬consts∨¬⊑¨'*'⊸∊¨𝕩
+      cleaned←constText⊸∾⁼¨⌾(consts⊸/)𝕩
+      [kept,removed] ← 2‿∘⥊⍉Remap⌾⌽˘> ∨`∘∊⟜"[*"⊸(¬⊸/∨`⌾⌽∘≠⟜' '⊸/⊸⋈SwitchOrder∘/)¨cleaned
+      replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
+      removed {""𝕊𝕩:𝕩;'"'≡⊑𝕩?𝕨⊸∾⌾('"'⊸∾⁼)𝕩;'"'∾𝕨∾"""∾"∾𝕩}¨ replaced
+    }
+  }
+
+  MapStructTypes ← {
+    [bqn,c] ← typeReplacements
     consts←constText⊸(⊣≡≠⊸↑)¨𝕩
     s ← ¬consts∨¬⊑¨'*'⊸∊¨𝕩
     cleaned←constText⊸∾⁼¨⌾(consts⊸/)𝕩
     [kept,removed] ← 2‿∘⥊⍉Remap⌾⌽˘> ∨`∘∊⟜"[*"⊸(¬⊸/∨`⌾⌽∘≠⟜' '⊸/⊸⋈SwitchOrder∘/)¨cleaned
-    replaced ← kept LowerNames∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
-    removed {""𝕊𝕩:𝕩;'"'≡⊑𝕩?𝕨⊸∾⌾('"'⊸∾⁼)𝕩;'"'∾𝕨∾"""∾"∾𝕩}¨ replaced
-  }
-}
-
-MapStructTypes ← {
-  [bqn,c] ← typeReplacements
-  consts←constText⊸(⊣≡≠⊸↑)¨𝕩
-  s ← ¬consts∨¬⊑¨'*'⊸∊¨𝕩
-  cleaned←constText⊸∾⁼¨⌾(consts⊸/)𝕩
-  [kept,removed] ← 2‿∘⥊⍉Remap⌾⌽˘> ∨`∘∊⟜"[*"⊸(¬⊸/∨`⌾⌽∘≠⟜' '⊸/⊸⋈SwitchOrder∘/)¨cleaned
-  AddRemoved ← {""𝕊𝕩:𝕩;'"'≡⊑𝕩?𝕨⊸∾⌾('"'⊸∾⁼)𝕩;'"'∾𝕨∾"""∾"∾𝕩}
-  replaced ← kept LowerNames∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
-  removed AddRemoved¨ replaced
-}
-
-mapStructNames ← {
-  [bqn,c]←⍉shortendStructNames
-  {𝕩LowerNames∘⊣⍟(0⊸≡)¨(c⊐𝕩)⊏bqn∾0}
-}
-
-mapFuncReturnType ← {
-  [bqn,c] ← typeReplacements
-  {
-    cleaned←𝕩↓˜¨constText≠⊸×constText⊸(⊣≡≠⊸↑)¨𝕩
-    [kept,removed] ← 2‿∘⥊⍉Remap⌾⌽˘> ∨`∘∊⟜"[*"⊸(¬⊸/¯1⊸↓⍟(" "≡¯1⊸↑)⊸⋈SwitchOrder∘/)¨cleaned
     AddRemoved ← {""𝕊𝕩:𝕩;'"'≡⊑𝕩?𝕨⊸∾⌾('"'⊸∾⁼)𝕩;'"'∾𝕨∾"""∾"∾𝕩}
-    replaced ← kept LowerNames∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
-    {'('∾𝕩∾')'}⍟(∨´"∾⊣"⊸∊)¨"ptr⊣"⊸∾⍟(("ustr"≡¯4⊸↑)∨∨´∘=⟜'*'∨"str"≡¯3⊸↑)¨ removed AddRemoved¨ replaced
+    replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
+    removed AddRemoved¨ replaced
   }
-}
 
-# turns header data from ParseHeader into ffi file characters
-# 𝕨 is an optional name mapping, used so you can rename functions and fix name collisions
-## Example1: ToFFI ParseHeader file.h
-## Example2: ⟨"bad_name"‿"CoolName"⟩ ToFFI ParseHeader file.h
-ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕0‿2
-  # TODO check validity of names in the mapping
+  mapStructNames ← {
+    [bqn,c]←⍉shortendStructNames
+    {𝕩LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐𝕩)⊏bqn∾0}
+  }
+
+  mapFuncReturnType ← {
+    [bqn,c] ← typeReplacements
+    {
+      cleaned←𝕩↓˜¨constText≠⊸×constText⊸(⊣≡≠⊸↑)¨𝕩
+      [kept,removed] ← 2‿∘⥊⍉Remap⌾⌽˘> ∨`∘∊⟜"[*"⊸(¬⊸/¯1⊸↓⍟(" "≡¯1⊸↑)⊸⋈SwitchOrder∘/)¨cleaned
+      AddRemoved ← {""𝕊𝕩:𝕩;'"'≡⊑𝕩?𝕨⊸∾⌾('"'⊸∾⁼)𝕩;'"'∾𝕨∾"""∾"∾𝕩}
+      replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
+      {'('∾𝕩∾')'}⍟(∨´"∾⊣"⊸∊)¨"ptr⊣"⊸∾⍟(("ustr"≡¯4⊸↑)∨∨´∘=⟜'*'∨"str"≡¯3⊸↑)¨ removed AddRemoved¨ replaced
+    }
+  }
+
   defines‿structs‿aliases‿enums‿callbacks‿functions←{
     !𝕩⊣˝⊸≡"defines"‿"structs"‿"aliases"‿"enums"‿"callbacks"‿"functions"
     ⊢˝¨¨⌾(0‿1‿3‿4‿5⊸⊏)⊢˝𝕩
@@ -145,14 +151,14 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕0‿2
     filtered ← {𝕊name‿type‿val‿desc:
       ¬∨´⟨"PI"≡name, ∨´type⊸≡¨exclTypes, ⟨⟩≡val ⟩
     }˘⊸/(↕0‿4)∾´defines
-    <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨,⟨⟩¨,•Repr¨,⊢⟩_MetaParse filtered
+    <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨MapNames,⟨⟩¨,•Repr¨,⊢⟩_MetaParse filtered
   }
 
   enumsDone ← {
     [names,descriptions,values]←⍉(↕0‿3)∾´enums
     tabled ← >¨⊢˝¨¨ values
-    bodys ← (<˘("  ")‿" ⇐ "‿"  # "⟨LowerNames¨,•Repr¨,⊢⟩_MetaParse⊢)¨tabled
-    headers ← names LowerNames⊸∾¨<˘" ⇐ { # "⊸∾˘Box descriptions
+    bodys ← (<˘("  ")‿" ⇐ "‿"  # "⟨LowerNames¨MapNames,•Repr¨,⊢⟩_MetaParse⊢)¨tabled
+    headers ← (MapNames names) LowerNames⊸∾¨<˘" ⇐ { # "⊸∾˘Box descriptions
     ∾headers<⊸∾¨∾⟜⟨"}"⟩¨bodys
   }
 
@@ -161,7 +167,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕0‿2
     headers ← (MapStructNames names) ∾⟜" ⇐ ⟨ # "⊸∾¨ descriptions
     bodys ← {⟨"⟩"⟩∾˜<˘"  "‿" # "‿"  # "⟨MapStructTypes,⊢,⊢⟩_MetaParse >𝕩}¨⊢˝¨¨fields
     assembled ← headers <⊸∾¨ bodys
-    aliasLines←»⊸∨∘≠⟜' '⊸/¨<˘""‿" ⇐ "‿" # "⟨LowerNames¨,MapArgTypes,⊢⟩_MetaParse ⌽⌾(2⊸↑)˘>⊢˝¨aliases
+    aliasLines←»⊸∨∘≠⟜' '⊸/¨<˘""‿" ⇐ "‿" # "⟨LowerNames¨MapNames,MapArgTypes,⊢⟩_MetaParse ⌽⌾(2⊸↑)˘>⊢˝¨aliases
     p←⊑¨⊢˝¨aliases
     ∾ ∾∾⟜(⋈⋈)¨⟜aliasLines⌾(¯1⊸↓)assembled⊔˜+`»+˝p≡⌜names
   }
@@ -183,7 +189,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕0‿2
     MakeConstDistinct ← (sAllLinesExtended¬⊸×(1+s2Lines∨sLines)/s+2×s2){'⟩'∾˜1↓∾'⋄'∾¨(⊑"ptr"‿"ustr"‿"str"⊐<)◶⟨"""&u8"""⋄"""&u8"""⋄"""&u8:c8"""⋄"""&"⊸∾"""*"⊸∾⁼⟩¨⌾((1=𝕨)⊸/)"""*i8"""¨⌾((2=𝕨)⊸/)𝕩}¨⊢
 
     <˘""‿" ⇐ "‿""""‿" _R⟨"‿"#"‿" # "⟨
-      ∾⟜"Raw"¨⌾((»s2LinesExtended)⊸/)·∾⟜"Ref"¨⌾((»s1LinesExtended)⊸/)LowerNames¨ ⋄ MapFuncReturnType ⋄ ∾⟜'"'¨ ⋄ MakeConstDistinct MapArgTypes¨ ⋄ (∾' '⊸∾¨)¨ ⋄ ⊢
+      ∾⟜"Raw"¨⌾((»s2LinesExtended)⊸/)·∾⟜"Ref"¨⌾((»s1LinesExtended)⊸/)LowerNames¨∘MapNames ⋄ MapFuncReturnType ⋄ ∾⟜'"'¨ ⋄ MakeConstDistinct MapArgTypes¨ ⋄ (∾' '⊸∾¨)¨ ⋄ ⊢
     ⟩_MetaParse⍟(⟨⟩⊸≢){
       0‿2‿0‿3‿4‿1⊏(3↑𝕩)∾⍉{<˘⍉∘‿2⥊⊢˝˘>⊑𝕩}˘⊢˝𝕩
     }⌾⍉⍟(⟨⟩⊸≢)(1+s2Lines∨sLines)/(↕0‿4)∾´∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
