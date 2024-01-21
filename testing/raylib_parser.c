@@ -1373,6 +1373,13 @@ static void ExportParsedData(const char *fileName)
                     (defines[i].type == DOUBLE) ||
                     (defines[i].type == STRING))
         {
+            char *x = defines[i].value;
+            for (int i = 0; x[i] != '\0'; i++)
+            {
+                if ((x[i] == '.') && (x[i+1] == '0') && (x[i+2] == '\0')){
+                    x[i] = '\0';
+                }
+            }
             fprintf(outFile, "      \"value\": %s,\n", defines[i].value);
         }
         else
