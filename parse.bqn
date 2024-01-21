@@ -73,7 +73,7 @@ defaultPathDefinition ← "⊑•args"
 
 SetPath ← {path𝕊ffi:
   def ← defaultPathDefinition
-  (⊐⟜1def⍷ffi)(↑∾'"'∾path∾'"'∾def≠⊸↓↓)ffi
+  (⊐⟜1 def⍷ffi)(↑∾'"'∾path∾'"'∾def≠⊸↓↓)ffi
 }
 
 # turns header data from ParseHeader into ffi file characters
