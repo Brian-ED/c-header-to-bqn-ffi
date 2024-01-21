@@ -3,6 +3,7 @@
   ToFFI        # turns header data from ParseHeader into ffi file characters
   ParseHeader  # Read string 𝕩 and optional function prefix 𝕨, outputs header data
   ToPrettyJson # Read header data from ParseHeader and makes a pretty json file
+  SetPath      # Set the path of the resulting FFI script from ToFFI
 ⟩⇐
 
 json ← •Import "json.bqn"
@@ -68,6 +69,13 @@ typeReplacements ← ⍉shortendStructNames∾[
   " "      ‿"void"
 ]
 
+defaultPathDefinition ← "⊑•args"
+
+SetPath ← {path𝕊ffi:
+  def ← defaultPathDefinition
+  (⊐⟜1def⍷ffi)(↑∾'"'∾path∾'"'∾def≠⊸↓↓)ffi
+}
+
 # turns header data from ParseHeader into ffi file characters
 # 𝕨 is an optional name mapping, used so you can rename functions and fix name collisions
 ## Example1: ToFFI ParseHeader file.h
@@ -129,7 +137,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
     ""
     •FChars "setupMacro.bqn"
     ""
-    "r ⇐ MakeImporter pathToBinary ⇐ ⊑•args"
+    "r ⇐ MakeImporter pathToBinary ⇐ "∾defaultPathDefinition
     ""
     "##################################"
     "# End of setup for easy ffi.     #"
