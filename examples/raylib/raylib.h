@@ -107,7 +107,7 @@
 // Some basic Defines
 //----------------------------------------------------------------------------------
 #ifndef PI
-    #define PI 3.14159265358979323846f
+    #define PI 3.141592653589793f
 #endif
 #ifndef DEG2RAD
     #define DEG2RAD (PI/180.0f)
