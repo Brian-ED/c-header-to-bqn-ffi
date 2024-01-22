@@ -21,7 +21,8 @@ Functions are expected as a single line with the following structure:
   <retType> <name>(<paramType[0]> <paramName[0]>, <paramType[1]> <paramName[1]>);  <desc>
 ```
 
-### Be careful with functions broken into several lines, it breaks the process!
+Be careful with functions broken into several lines, it breaks the process!
+
 Structs are expected as several lines with the following form:
 ```c
 <desc>
