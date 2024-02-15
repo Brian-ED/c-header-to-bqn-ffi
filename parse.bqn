@@ -123,7 +123,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
       [kept,removed] ← 2‿∘⥊⍉Remap⌾⌽˘> ∨`∘∊⟜"[*"⊸(¬⊸/¯1⊸↓⍟(" "≡¯1⊸↑)⊸⋈SwitchOrder∘/)¨cleaned
       AddRemoved ← {""𝕊𝕩:𝕩;'"'≡⊑𝕩?𝕨⊸∾⌾('"'⊸∾⁼)𝕩;'"'∾𝕨∾"""∾"∾𝕩}
       replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
-      {'('∾𝕩∾')'}⍟(∨´"∾⊣"⊸∊)¨"ptr⊣"⊸∾⍟(("ustr"≡¯4⊸↑)∨∨´∘=⟜'*'∨"str"≡¯3⊸↑)¨ removed AddRemoved¨ replaced
+      {'('∾𝕩∾')'}⍟(∨´"∾⊣"⊸∊)¨"ptr⊣"⊸∾⍟(("ustr"≡¯4⊸↑)∨"str"≡¯3⊸↑)¨ removed AddRemoved¨ replaced
     }
   }
 
@@ -247,11 +247,11 @@ ParseHeader ← {𝕨𝕊headerChars:
 
   lines ← ' '⍟((9+@)⊸≡)¨¨ headerLines
 
-  defines ← (∊⊑¨)⊸/ ¯1⊑¨{lastDefines𝕊linePtr:
+  defines ← (∊⊑¨)⊸/ ¯1⊑¨{lastDefines𝕊𝕩: defineLine←⊑𝕩
     operand ← ⟨⟩
 
     RLS ← ∨`∘≠⟜' '⊸/ # Remove first spaces
-    nameAndArgs ← RLS defMacro∾⁼(∨`∧∨`⌾⌽)∘≠⟜' '⊸/ ∧`∘∨⟜«∘≠⟜'/'⊸/ ⊑linePtr # Skip defMacro, then spaces again
+    nameAndArgs ← RLS defMacro∾⁼(∨`∧∨`⌾⌽)∘≠⟜' '⊸/ ∧`∘∨⟜«∘≠⟜'/'⊸/ defineLine # Skip defMacro, then spaces again
 
     # Extract name    
     nameLen ← ≤´∘⊐⟜" ("◶⟨
@@ -290,7 +290,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     value ← args↓˜-⊑type∊long‿float # Remove number postfix
 
     # Extracting description
-    description ← GetDescription ⊑linePtr
+    description ← GetDescription defineLine
 
     # Parse defines of type UNKNOWN to find calculated numbers
     isMath ← 1
@@ -343,9 +343,9 @@ ParseHeader ← {𝕨𝕊headerChars:
 
   # Structs info data
   structs ← {𝕤
-    linesPtr ← ∨`∘≠⟜' '⊸/¨𝕩↓lines
+    structLines ← ∨`∘≠⟜' '⊸/¨𝕩↓lines
     desc ← GetDescription (𝕩-1)⊑lines # Parse struct description
-    name←' '⊸≠⊸/∧`∘≠⟜'{'⊸/"typedef struct "∾⁼⊑linesPtr # Get struct name: typedef struct name {
+    name←' '⊸≠⊸/∧`∘≠⟜'{'⊸/"typedef struct "∾⁼⊑structLines # Get struct name: typedef struct name {
     fields ← ∾´{ # Get struct fields and count them -> fields finish with ;
       fieldType‿fieldNamesUnparsed ← ∨`∘≠⟜' '⊸/⌾⌽¨ GetDataTypeAndName ⊐⟜';'⊸↑𝕩
       fieldNames ← ∨`∘≠⟜' '⊸/¨ ','((⊢-˜+`×¬)∘=⊔⊢)fieldNamesUnparsed
@@ -356,7 +356,7 @@ ParseHeader ← {𝕨𝕊headerChars:
       fieldnames ∧`∘≠⟜'['⊸/¨↩
 
       (<fieldDesc)⊸∾¨fieldTypes⋈¨fieldNames
-    }¨(∧´"struct"‿"/"‿" "≢¨6‿1‿1↑¨<)¨⊸/∨`∘≠⟜' '⊸/¨(∧`'}'≠·∾´1⊸↑¨)⊸/1↓linesPtr
+    }¨(∧´"struct"‿"/"‿" "≢¨6‿1‿1↑¨<)¨⊸/∨`∘≠⟜' '⊸/¨(∧`'}'≠·∾´1⊸↑¨)⊸/1↓structLines
 
     name‿desc‿fields
 
@@ -372,9 +372,9 @@ ParseHeader ← {𝕨𝕊headerChars:
 
   # Alias info data
   aliases ← {𝕤
-    linePtr ←𝕩⊑lines
-    desc ← (lines⊑˜𝕩-1)⊣⍟(""⊸≡)○GetDescription linePtr
-    type‿name ← ' '((¬-˜⊢×·+`»⊸>)∘≠⊔⊢)"typedef "∾⁼⊐⟜'/'⊸↑linePtr  
+    aliasLine ← 𝕩⊑lines
+    desc ← (lines⊑˜𝕩-1)⊣⍟(""⊸≡)○GetDescription aliasLine
+    type‿name ← ' '((¬-˜⊢×·+`»⊸>)∘≠⊔⊢)"typedef "∾⁼⊐⟜'/'⊸↑aliasLine  
     name ∾⟜";"⁼↩
     type‿name‿desc
   }¨/(∨´∘=⟜';'∧"typedef"⊸(⊣≡≠⊸↑)∧2=(+´' '⊸=>∨`∘=⟜';'))¨lines # Find aliases (lines with "typedef ... ...;")

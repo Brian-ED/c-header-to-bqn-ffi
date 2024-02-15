@@ -4,8 +4,7 @@
 MakeImporter ⇐ {𝕨𝕊pathToBin: debug←𝕨⊣0
   NestedStructToStr ← {
     1≥≡𝕩?𝕩;
-    IsPtr ← ("ustr"≡¯4⊸↑)∨('*'≡⊑)∨"str"≡¯3⊸↑
-    (m¬⊸/𝕩)∾'{'∾'}'«∾','∾¨𝕊¨ptr⍟IsPtr⍟(⟨⟩≢≢)¨𝕩/˜m←×≡¨𝕩
+    (m¬⊸/𝕩)∾'{'∾'}'«∾','∾¨𝕊¨𝕩/˜m←×≡¨𝕩
   }
 
   {𝕨 funcName _𝕣 inpTypes: outType←𝕨⊣⟨⟩
@@ -506,7 +505,7 @@ guiDisableTooltip    ⇐              "GuiDisableTooltip"   _R⟨⟩            
 guiSetTooltip        ⇐              "GuiSetTooltip"       _R⟨str⟩                                         # tooltip                                                        # Set tooltip string
 guiIconText          ⇐ (ptr⊣str)    "GuiIconText"         _R⟨i⋄str⟩                                       # iconId text                                                    # Get text with icon id prepended (if supported)
 guiSetIconScale      ⇐              "GuiSetIconScale"     _R⟨i⟩                                           # scale                                                          # Set default icon drawing size
-guiGetIcons          ⇐ (ptr⊣"*"∾u)  "GuiGetIcons"         _R⟨⟩                                            #                                                                # Get raygui icons data pointer
+guiGetIcons          ⇐ ("*"∾u)      "GuiGetIcons"         _R⟨⟩                                            #                                                                # Get raygui icons data pointer
 guiLoadIcons         ⇐ (ptr⊣"*"∾str)"GuiLoadIcons"        _R⟨str⋄bool⟩                                    # fileName loadIconsName                                         # Load raygui icons file (.rgi) into internal icons data
 guiDrawIcon          ⇐              "GuiDrawIcon"         _R⟨i⋄i⋄i⋄i⋄color⟩                               # iconId posX posY pixelSize color                               # Draw icon using pixel size at specified position
 guiWindowBox         ⇐ i            "GuiWindowBox"        _R⟨rectangle⋄str⟩                               # bounds title                                                   # Window Box control, shows a window that can be closed
