@@ -33,7 +33,7 @@ i8   ⇐ "i8"
 u8   ⇐ "u8"
 str  ⇐ "*i8:c8"
 uStr ⇐ "*u8:c8"
-ptr  ⇐ "*:i8"
+ptr  ⇐ "*"
 
 r ⇐ MakeImporter pathToBinary ⇐ ⊑•args
 
