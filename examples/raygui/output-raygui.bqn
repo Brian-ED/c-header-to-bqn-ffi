@@ -6,10 +6,13 @@ MakeImporter ⇐ {𝕨𝕊pathToBin: debug←𝕨⊣0
     1≥≡𝕩?𝕩;
     (m¬⊸/𝕩)∾'{'∾'}'«∾','∾¨𝕊¨𝕩/˜m←×≡¨𝕩
   }
+  NestedStructToStrRet ← {
+    1≥≡𝕩?𝕩;
+    (m¬⊸/𝕩)∾'{'∾'}'«∾','∾¨𝕊¨"*"⍟("*i8:c8"⊸≡∨"*u8:c8"⊸≡)¨𝕩/˜m←×≡¨𝕩
+  }
 
   {𝕨 funcName _𝕣 inpTypes: outType←𝕨⊣⟨⟩
-    IntoStr ← NestedStructToStr
-    a←'>'⊸∾⌾⊑⍟(1=≠) IntoStr¨𝕩
+    a←'>'⊸∾⌾⊑⍟(1=≠) NestedStructToStr¨𝕩
     HandleError ← {
       •Out "DEBUG TYPE INFO:"
       •Out •Fmt 𝕩
@@ -17,7 +20,7 @@ MakeImporter ⇐ {𝕨𝕊pathToBin: debug←𝕨⊣0
       •term.Flush@
       𝕨•FFI𝕩
     }
-    func ← pathToBin •FFI⎊HandleError ⟨ NestedStructToStr outType⋄funcName⟩∾a
+    func ← pathToBin •FFI⎊HandleError ⟨ NestedStructToStrRet outType⋄funcName⟩∾a
     m ← str⊸≡¨a
     •term.Flush∘@∘•Out∘funcName⍟debug⊸⊢ {𝕏∾⟜@}⍟(a≡⋈'>'∾str) {𝕏∾⟜@¨⌾(m⊸/)}⍟(∨´m) func
   }
