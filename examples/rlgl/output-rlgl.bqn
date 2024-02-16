@@ -4,13 +4,15 @@
 MakeImporter ⇐ {𝕨𝕊pathToBin: debug←𝕨⊣0
   NestedStructToStr ← {
     1≥≡𝕩?𝕩;
-    IsPtr ← ("ustr"≡¯4⊸↑)∨('*'≡⊑)∨"str"≡¯3⊸↑
-    (m¬⊸/𝕩)∾'{'∾'}'«∾','∾¨𝕊¨ptr⍟IsPtr⍟(⟨⟩≢≢)¨𝕩/˜m←×≡¨𝕩
+    (m¬⊸/𝕩)∾'{'∾'}'«∾','∾¨𝕊¨𝕩/˜m←×≡¨𝕩
+  }
+  NestedStructToStrRet ← {
+    1≥≡𝕩?𝕩;
+    (m¬⊸/𝕩)∾'{'∾'}'«∾','∾¨𝕊¨"*"⍟("*i8:c8"⊸≡∨"*u8:c8"⊸≡)¨𝕩/˜m←×≡¨𝕩
   }
 
   {𝕨 funcName _𝕣 inpTypes: outType←𝕨⊣⟨⟩
-    IntoStr ← NestedStructToStr
-    a←'>'⊸∾⌾⊑⍟(1=≠) IntoStr¨𝕩
+    a←'>'⊸∾⌾⊑⍟(1=≠) NestedStructToStr¨𝕩
     HandleError ← {
       •Out "DEBUG TYPE INFO:"
       •Out •Fmt 𝕩
@@ -18,7 +20,7 @@ MakeImporter ⇐ {𝕨𝕊pathToBin: debug←𝕨⊣0
       •term.Flush@
       𝕨•FFI𝕩
     }
-    func ← pathToBin •FFI⎊HandleError ⟨ NestedStructToStr outType⋄funcName⟩∾a
+    func ← pathToBin •FFI⎊HandleError ⟨ NestedStructToStrRet outType⋄funcName⟩∾a
     m ← str⊸≡¨a
     •term.Flush∘@∘•Out∘funcName⍟debug⊸⊢ {𝕏∾⟜@}⍟(a≡⋈'>'∾str) {𝕏∾⟜@¨⌾(m⊸/)}⍟(∨´m) func
   }
@@ -34,7 +36,7 @@ i8   ⇐ "i8"
 u8   ⇐ "u8"
 str  ⇐ "*i8:c8"
 uStr ⇐ "*u8:c8"
-ptr  ⇐ "*:i8"
+ptr  ⇐ "*"
 
 r ⇐ MakeImporter pathToBinary ⇐ "/mnt/0AD47A53D47A414D/Users/brian/Persinal/Scripts/BQN/c-header-to-bqn-ffi/examples/rlgl"
 
@@ -378,7 +380,7 @@ rlSetFramebufferHeight                ⇐              "rlSetFramebufferHeight" 
 rlGetFramebufferHeight                ⇐ i            "rlGetFramebufferHeight"             _R⟨⟩                                   #                                                                      # Get default framebuffer height
 rlGetTextureIdDefault                 ⇐ u            "rlGetTextureIdDefault"              _R⟨⟩                                   #                                                                      # Get default texture id
 rlGetShaderIdDefault                  ⇐ u            "rlGetShaderIdDefault"               _R⟨⟩                                   #                                                                      # Get default shader id
-rlGetShaderLocsDefault                ⇐ (ptr⊣"*"∾i)  "rlGetShaderLocsDefault"             _R⟨⟩                                   #                                                                      # Get default shader locations
+rlGetShaderLocsDefault                ⇐ ("*"∾i)      "rlGetShaderLocsDefault"             _R⟨⟩                                   #                                                                      # Get default shader locations
 rlLoadRenderBatch                     ⇐ rlRenderBatch"rlLoadRenderBatch"                  _R⟨i⋄i⟩                                # numBuffers bufferElements                                            # Load a render batch system
 rlUnloadRenderBatch                   ⇐              "rlUnloadRenderBatch"                _R⟨rlRenderBatch⟩                      # batch                                                                # Unload render batch system
 rlDrawRenderBatch                     ⇐              "rlDrawRenderBatch"                  _R⟨"*"∾rlRenderBatch⟩                  # batch                                                                # Draw render batch data (Update->Draw->Reset)
