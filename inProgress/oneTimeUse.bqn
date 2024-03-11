@@ -31,6 +31,6 @@ ReRunParser⍟(∨´o≡¨•Getline)@
 "
 first ask for libraylib.so or raylib.dll
 
-regenerate rayffi.bqn? (if file doesn't exist, just straight up ask for location of raylib.h)
+regenerate ffi files? (if file doesn't exist, just straight up ask for location of raylib.h)
 
 "
