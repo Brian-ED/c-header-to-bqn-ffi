@@ -159,7 +159,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
     filtered ← {𝕊name‿type‿val‿desc:
       ¬∨´⟨"PI"≡name, ∨´type⊸≡¨exclTypes, ⟨⟩≡val ⟩
     }˘⊸/(↕0‿4)∾´defines
-    <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨MapNames,⟨⟩¨,•Repr¨,⊢⟩_MetaParse filtered
+    <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨MapNames,⟨⟩¨,'-'⍟('¯'⊸≡)¨∘•Repr¨,⊢⟩_MetaParse filtered
   }
 
   enumsDone ← {
@@ -327,7 +327,7 @@ ParseHeader ← {𝕨𝕊headerChars:
       }⍟⊢isMath
     }⍟⊢type=unknown
     lastNames←⊑¨lastDefines
-    value {•Repr 16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐-⟜(32×1="a{"⊸⍋)"0x"∾⁼𝕩}⍟ishex↩
+    value {'-'⍟('¯'⊸≡)¨•Repr 16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐-⟜(32×1="a{"⊸⍋)"0x"∾⁼𝕩}⍟ishex↩
     value {
       ∨´type=int‿long‿float‿double?
         •ParseFloat𝕩
@@ -427,7 +427,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     }¨((≥⟜'A'∧'Z'⊸≥)∘⊑¨1↑¨⊢)⊸/ ∨`∘≠⟜' '⊸/¨(∧`'}'≠·⊑¨1↑¨⊢)⊸/lines↓˜1+𝕩
     
     values {𝕩=@?𝕨+1;𝕩}`⌾(1⊸⊑¨)↩
-    values •Repr¨⌾(1⊸⊑¨)↩
+    values ('-'⍟('¯'⊸≡)¨•Repr)¨⌾(1⊸⊑¨)↩
 
     # Get enum name from typedef
     name←"} "∾⁼⊐⟜';'⊸↑ (⊑∘⊐⟜'}'·∾´1↑¨⊢)⊸⊑lines↓˜1+𝕩
@@ -569,7 +569,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
       ⋈"    {"
       ⋈"      ""name"": """∾name∾""","
       ⋈"      ""type"": """∾type∾""","
-      ⋈"      ""value"": "∾(•Repr⍟(0≡=) value)∾','
+      ⋈"      ""value"": "∾('-'⍟('¯'⊸≡)¨•Repr⍟(0≡=) value)∾','
       ⋈"      ""description"": """∾(Escape description)∾""""
       ⋈"    },"
     ⟩}¨defines

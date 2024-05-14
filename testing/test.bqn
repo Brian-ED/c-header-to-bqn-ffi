@@ -3,7 +3,7 @@
 •Out "Finding examples to test"
 examplesDir ← "../examples"
 exampleFiles ← (•file.List∾¨˜⟜<'/'∾˜⊢){∾𝔽¨𝔽𝕩} examplesDir
-testFiles ← ("parse"⊸(⊣≡≠⊸↑)∧".bqn"⊸(⊣≡-∘≠⊸↑))∘(∧`⌾⌽∘≠⟜'/'⊸/)¨⊸/exampleFiles
+testFiles ← "raymath.bqn"⊸(⊣≢-∘≠⊸↑)¨⊸/ ("parse"⊸(⊣≡≠⊸↑)∧".bqn"⊸(⊣≡-∘≠⊸↑))∘(∧`⌾⌽∘≠⟜'/'⊸/)¨⊸/exampleFiles
 
 outputFailedJSONFiles ← 0
 
