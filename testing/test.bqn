@@ -13,9 +13,22 @@ SH ← {exitcode‿stdout‿stderr←•SH𝕩
 }
 
 {
+  ##################################
+  # Test the output files changing #
+  ##################################
+
   •Out "Testing "∾𝕩
   •term.OutRaw "    "
-  •Import 𝕩
+  path ← ∨`⌾⌽∘=⟜'/'⊸/𝕩
+  headerPath ← ⊑".h"⊸(⊣≡-∘≠⊸↑)¨⊸/(<∾¨•file.List)path
+  outputPath ← ⊑{("output-"⊸(⊣≡≠⊸↑)∧".bqn"⊸(⊣≡-∘≠⊸↑))¨•file.Name¨𝕩}⊸/(<∾¨•file.List)path
+  bqnParserPath ← ⊑{("parse-"⊸(⊣≡≠⊸↑)∧".bqn"⊸(⊣≡-∘≠⊸↑))¨•file.Name¨𝕩}⊸/(<∾¨•file.List)path
+
+  beforeParse ← •FChars outputPath
+  ⟨⟩ •Import 𝕩
+  afterParse ← •FChars outputPath
+  outputPath •FChars beforeParse # so the output file is uneffected by testing
+  !afterParse≡beforeParse
 }¨testFiles
 
 # compile c parser
@@ -34,12 +47,17 @@ json ← •Import "../json.bqn"
 raylibOutputTestcases ← {𝕊pathToFile:
   path ← ∨`⌾⌽∘=⟜'/'⊸/pathToFile
   headerPath ← ⊑".h"⊸(⊣≡-∘≠⊸↑)¨⊸/(<∾¨•file.List)path
-  
+  outputPath ← ⊑{("output-"⊸(⊣≡≠⊸↑)∧".bqn"⊸(⊣≡-∘≠⊸↑))¨•file.Name¨𝕩}⊸/(<∾¨•file.List)path
+  bqnParserPath ← ⊑{("parse-"⊸(⊣≡≠⊸↑)∧".bqn"⊸(⊣≡-∘≠⊸↑))¨•file.Name¨𝕩}⊸/(<∾¨•file.List)path
+
   raylibJsonTempLoc ← "/tmp/temp.json"
   tmpHeaderPath ← "/tmp/temp.h"
-  
+
+  #########################
+  # Test the json outputs #
+  #########################
   tmpHeaderPath •FChars •FChars headerPath
-  
+
   •Out "Parsing "∾headerPath∾" with raylib_parser.c and parse.bqn"
   SH binLocation‿"-i"‿tmpHeaderPath‿"-o"‿raylibJsonTempLoc‿"-d"‿"RLAPI"
   cMadeJson ← •FChars raylibJsonTempLoc
