@@ -140,10 +140,6 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
   # unless you provide the header to ffi script a input
   # that's a mapping of c names to bqn names
 
-  # TODO HANDLE THESE LATER
-  #  typedef struct rAudioBuffer rAudioBuffer;
-  #  typedef struct rAudioProcessor rAudioProcessor;
-
   definesDone ← {
     exclTypes  ← "GUARD"‿"MACRO"‿"UNKNOWN"‿"FLOAT_MATH"‿"COLOR"
     filtered ← {𝕊name‿type‿val‿desc:
@@ -216,7 +212,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
 
 # Get data type and name from a string containing both
 # NOTE: Useful to parse function parameters and struct fields
-GetDataTypeAndName ← (∨`⌾⌽∊⟜"* ">∨`∘=⟜',')⊸(/⋈¬⊸/) #‿type‿name: # const char *typeName, int typeNameLen, char *type, char *name)
+GetDataTypeAndName ← (∨`⌾⌽∊⟜"* ">∨`∘=⟜',')⊸(/⋈¬⊸/) # type‿name: # const char *typeName, int typeNameLen, char *type, char *name)
 
 # Get comment from a line, do nothing if no comment in line
 GetDescription ← ∨`∘≠⟜' '⊸/2↓∨`∘∧⟜«∘=⟜'/'⊸/ # str → description (str)
@@ -547,7 +543,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
 
     # Print defines info
     ⋈"  ""defines"": ["
-    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿type‿value‿description:∾⟨
+    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´{𝕊name‿type‿value‿description:∾⟨
       ⋈"    {"
       ⋈"      ""name"": """∾name∾""","
       ⋈"      ""type"": """∾type∾""","
@@ -558,7 +554,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
     ⋈"  ],"
     # Print structs info
     ⋈"  ""structs"": ["
-    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿desc‿fields:∾⟨
+    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´{𝕊name‿desc‿fields:∾⟨
       ⋈"    {"
       ⋈"      ""name"": """∾name∾""","
       ⋈"      ""description"": """∾(Escape desc)∾""","
@@ -577,7 +573,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
 
     # Print aliases info
     ⋈"  ""aliases"": ["
-    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊type‿name‿desc:⟨
+    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´{𝕊type‿name‿desc:⟨
       "    {"
       "      ""type"": """∾type∾""","
       "      ""name"": """∾name∾""","
@@ -588,13 +584,13 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
 
     # Print enums info
     ⋈"  ""enums"": ["
-    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿desc‿values:
+    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´{𝕊name‿desc‿values:
       ∾⟨
         ⋈"    {"
         ⋈"      ""name"": """∾name∾""","
         ⋈"      ""description"": """∾(Escape desc)∾""","
         ⋈"      ""values"": ["
-        ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊valueName‿value‿valueDesc:
+        ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´{𝕊valueName‿value‿valueDesc:
           ⟨
             "        {"
             "          ""name"": """∾valueName∾""","
@@ -611,14 +607,14 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
 
     # Print callbacks info
     ⋈"  ""callbacks"": ["
-    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿desc‿retType‿paramTypes‿paramNames:∾⟨
+    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´{𝕊name‿desc‿retType‿paramTypes‿paramNames:∾⟨
       ⋈"    {"
       ⋈"      ""name"": """∾name∾""","
       ⋈"      ""description"": """∾(Escape desc)∾""",",
       ⋈"      ""returnType"": """∾retType∾""""∾","/˜⟨⟩≢paramTypes
       ⟨⟩⍟(⟨⟩≡paramTypes)∾⟨
         ⋈"      ""params"": ["
-        ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾paramTypes{
+        ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´paramTypes{
           ⟨
             "        {"
             "          ""type"": """∾𝕨∾""","
@@ -634,7 +630,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
 
     # Print functions info
     ⋈"  ""functions"": ["
-    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾{𝕊name‿desc‿retType‿paramNames‿paramTypes:
+    ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´{𝕊name‿desc‿retType‿paramNames‿paramTypes:
       ∾⟨
         ⋈"    {"
         ⋈"      ""name"": """∾name∾""","
@@ -642,7 +638,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
         ⋈"      ""returnType"": """∾retType∾""""∾","/˜⟨⟩≢paramTypes
         ⟨⟩⍟(⟨⟩≡paramTypes) ∾⟨
           ⋈"      ""params"": ["
-          ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)∾paramTypes{
+          ¯1⊸↓⌾(¯1⊸⊑)⍟(⟨⟩⊸≢)⟨⟩∾´paramTypes{
             ⟨
               "        {"
               "          ""type"": """∾𝕨∾""","
