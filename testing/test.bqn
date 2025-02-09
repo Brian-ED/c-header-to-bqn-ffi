@@ -3,7 +3,7 @@
 •Out "Finding examples to test"
 examplesDir ← "../examples"
 exampleFiles ← (•file.List∾¨˜⟜<'/'∾˜⊢){∾𝔽¨𝔽𝕩} examplesDir
-testFiles ← "raymath.bqn"⊸(⊣≢-∘≠⊸↑)¨⊸/ ("parse"⊸(⊣≡≠⊸↑)∧".bqn"⊸(⊣≡-∘≠⊸↑))∘(∧`⌾⌽∘≠⟜'/'⊸/)¨⊸/exampleFiles
+testFiles ← ("parse"⊸(⊣≡≠⊸↑)∧".bqn"⊸(⊣≡-∘≠⊸↑))∘(∧`⌾⌽∘≠⟜'/'⊸/)¨⊸/exampleFiles
 
 outputFailedJSONFiles ← 0
 
@@ -59,7 +59,7 @@ raylibOutputTestcases ← {𝕊pathToFile:
   tmpHeaderPath •FChars •FChars headerPath
 
   •Out "Parsing "∾headerPath∾" with raylib_parser.c and parse.bqn"
-  SH binLocation‿"-i"‿tmpHeaderPath‿"-o"‿raylibJsonTempLoc‿"-d"‿"RLAPI"
+  SH binLocation‿"-i"‿tmpHeaderPath‿"-o"‿raylibJsonTempLoc‿"-d"‿"RLAPI"‿"--format"‿"JSON"
   cMadeJson ← •FChars raylibJsonTempLoc
   bqnMadeJson ← (@+10)∾˜ToPrettyJson "RLAPI" ParseHeader •FChars headerPath
   •Out "Parsing successful"
