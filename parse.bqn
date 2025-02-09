@@ -187,7 +187,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
     }⌾⍉⍟(⟨⟩⊸≢)(1+s2Lines∨sLines)/(↕0‿4)∾´∾⟜⟨⟨⟩⟩⍟(3=≠)¨functions
   }
 
-  top∾∾nl∾¨∨`⌾⌽∘≠⟜' '⊸/¨∾1↓∾⟨""⟩⊸⋈¨definesDone‿enumsDone‿structsDone‿functionsDone
+  nl∾˜top∾∾nl∾¨∨`⌾⌽∘≠⟜' '⊸/¨∾1↓∾⟨""⟩⊸⋈¨definesDone‿enumsDone‿structsDone‿functionsDone
 }
 
 # Type of parsed define
@@ -324,7 +324,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     value {'-'⍟('¯'⊸≡)¨•Repr 16⊸×⊸+˜´⌽(∾"0A"+⟜↕¨10‿6)⊐-⟜(32×1="a{"⊸⍋)"0x"∾⁼𝕩}⍟ishex↩
     value {
       ∨´type=int‿long‿float‿double?
-        •ParseFloat𝕩
+        𝕩
     ;
       type = string?
         𝕩
@@ -563,7 +563,7 @@ ToPrettyJson ← {𝕊defines‿structs‿aliases‿enums‿callbacks‿function
       "    {"
       "      ""name"": """∾name∾""","
       "      ""type"": """∾type∾""","
-      "      ""value"": "∾('-'⍟('¯'⊸≡)¨•Repr⍟(0≡=) value)∾','
+      "      ""value"": "∾value∾','
       "      ""description"": """∾(Escape description)∾""""
       "    },"
     ⟩}¨defines
