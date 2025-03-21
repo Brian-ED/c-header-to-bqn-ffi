@@ -112,19 +112,17 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
     removed AddRemoved¨ replaced
   }
 
-  mapStructNames ← {
+  MapStructNames ← {
     [bqn,c]←⍉shortendStructNames
-    {𝕩LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐𝕩)⊏bqn∾0}
+    𝕩LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐𝕩)⊏bqn∾0
   }
 
-  mapFuncReturnType ← {
+  MapFuncReturnType ← {
     [bqn,c] ← typeReplacements
-    {
-      cleaned←𝕩↓˜¨constText≠⊸×constText⊸(⊣≡≠⊸↑)¨𝕩
-      [kept,removed] ← 2‿∘⥊⍉Remap˘(↕0‿2)∾´ ∨`∘∊⟜"[*"⊸(¬⊸/∾⟜" "⁼⍟(" "≡¯1⊸↑)⊸⋈SwitchOrder∘/)¨cleaned
-      replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
-      {'('∾𝕩∾')'}⍟(∨´"∾⊣"⊸∊)¨"ptr⊣"⊸∾⍟(("ustr"≡¯4⊸↑)∨"str"≡¯3⊸↑)¨ removed AddRemoved¨ replaced
-    }
+    cleaned←𝕩↓˜¨constText≠⊸×constText⊸(⊣≡≠⊸↑)¨𝕩
+    [kept,removed] ← 2‿∘⥊⍉Remap˘(↕0‿2)∾´ ∨`∘∊⟜"[*"⊸(¬⊸/∾⟜" "⁼⍟(" "≡¯1⊸↑)⊸⋈SwitchOrder∘/)¨cleaned
+    replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
+    {'('∾𝕩∾')'}⍟(∨´"∾⊣"⊸∊)¨"ptr⊣"⊸∾⍟(("ustr"≡¯4⊸↑)∨"str"≡¯3⊸↑)¨ removed AddRemoved¨ replaced
   }
 
   defines‿structs‿aliases‿enums‿callbacks‿functions←{
