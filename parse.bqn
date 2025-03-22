@@ -139,9 +139,10 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
   definesDone ← {
     exclTypes  ← "GUARD"‿"MACRO"‿"UNKNOWN"‿"FLOAT_MATH"‿"COLOR"
     filtered ← {𝕊name‿type‿val‿desc:
-      ¬∨´⟨"PI"≡name, ∨´type⊸≡¨exclTypes, ⟨⟩≡val ⟩
+      ¬(⟨⟩≡val)∨´type⊸≡¨exclTypes
     }˘⊸/(↕0‿4)∾´defines
-    <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨MapNames,⟨⟩¨,'-'⍟('¯'⊸≡)¨∘•Repr¨,⊢⟩_MetaParse filtered
+    "Multiple defines(#define) have the same name"!∧´∊⊏⍉filtered
+    <˘""‿""‿" ⇐ "‿" # "⟨LowerNames¨MapNames,⟨⟩¨,•Repr¨,⊢⟩_MetaParse filtered
   }
 
   enumsDone ← {
@@ -159,6 +160,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
     assembled ← headers <⊸∾¨ bodys
     aliasLines←»⊸∨∘≠⟜' '⊸/¨<˘""‿" ⇐ "‿" # "⟨LowerNames¨MapNames,MapArgTypes,⊢⟩_MetaParse 1‿0‿2⊸⊏˘(↕0‿3)∾´⊢˝¨aliases
     p←⊑¨⊢˝¨aliases
+    "Multiple structs and/or struct aliases have the same name"!∧´∊names∾1⊸⊏˘(↕0‿3)∾´⊢˝¨aliases
     ∾ ∾∾⟜(<⋈)¨⟜aliasLines⌾(¯1⊸↓)assembled⊔˜+`»+˝p≡⌜names
   }
 
