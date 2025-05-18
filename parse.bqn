@@ -336,23 +336,30 @@ ParseHeader ← {𝕨𝕊headerChars:
   }`´(<⟨⟩)⋈↓⟜lines¨/defMacro⊸(⊣≡≠⊸↑)¨∨`∘≠⟜' '⊸/¨lines
 
   # Structs info data
-  structs ← {𝕤
+  structs ← (⊑¨¬⊸/1⊸⊑¨){𝕤
     structLines ← ∨`∘≠⟜' '⊸/¨𝕩↓lines
     desc ← GetDescription (𝕩-1)⊑lines # Parse struct description
-    name←' '⊸≠⊸/∧`∘≠⟜'{'⊸/"typedef struct "∾⁼⊑structLines # Get struct name: typedef struct name {
+    name←' '⊸≠⊸/∧`∘≠⟜'{'⊸/"struct "∾⁼"typedef "(⊢↓˜≠∘⊣×⊣≡≠⊸↑)⊑structLines # Get struct name: typedef struct name {
+    skipMe ← (⟨⟩≡name)∨¬∧´name∊∾"aA0"+↕¨26‿26‿10
+    •Out⍟skipMe "Warning: struct skipped with name """∾name∾""". Struct name invalid."
+    fieldLines ← (∧˝"/ "≠⌜' '⊣´¨⊢)⊸/∨`∘≠⟜' '⊸/¨(∧`'}'≠' '⊣´¨⊢)⊸/1↓structLines
+    Warning←{𝕊:•Out {∧´name∊∾"aA0"+↕¨26‿26‿10?𝕨∾" named "∾𝕩∾˜•Repr name;𝕨∾𝕩}´ "Warning: struct"‿" skipped. Structs or enums in struct fields are not allowed. Nested structs will likely be skipped due to empty prefix names."}
+    skipMe ∨↩ Warning⍟⊢ ∨´∨˝"struct"‿"enum"(≡⌜∨∾¨⟜' '(⊣≡7↑⊢)⌜⊢)fieldLines
+
     fields ← ∾´{ # Get struct fields and count them -> fields finish with ;
       fieldType‿fieldNamesUnparsed ← ∨`⌾⌽∘≠⟜' '⊸/¨ GetDataTypeAndName ⊐⟜';'⊸↑𝕩
-      fieldNames ← ∨`∘≠⟜' '⊸/¨ ','((⊢-˜+`×¬)∘=⊔⊢)fieldNamesUnparsed
+      fieldNames ← ∨`∘≠⟜' '⊸/¨ ','((⊢-˜+`×¬)∘=⊔⊢)fieldNamesUnparsed # "m0, m4, m8, m12"
       fieldDesc  ← GetDescription 𝕩
 
       # Move type len info from name to type
       fieldTypes ← fieldType⊸∾¨∨`∘=⟜'['⊸/¨fieldnames
       fieldnames ∧`∘≠⟜'['⊸/¨↩
 
-      (<fieldDesc)⊸∾¨fieldTypes⋈¨fieldNames
-    }¨(∧´"struct"‿"/"‿" "≢¨6‿1‿1↑¨<)¨⊸/∨`∘≠⟜' '⊸/¨(∧`'}'≠·∾´1⊸↑¨)⊸/1↓structLines
+      fieldTypesNonRecursive ← {"ptr"¨⌾((name⊸≡¨∧`∘¬∘∊⟜"* "⊸/¨𝕩)⊸/)𝕩}fieldTypes
+      (<fieldDesc)⊸∾¨fieldTypesNonRecursive⋈¨fieldNames
+    }¨fieldLines
 
-    name‿desc‿fields
+    ⟨skipMe⋄name‿desc‿fields⟩
 
     # Read struct lines
     # Find structs
@@ -361,7 +368,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     # i.e. excluding "typedef struct rAudioBuffer rAudioBuffer;" -> Typedef and forward declaration only
   }¨/{
     [m1,m2]←"typedef struct"‿"struct"(⊣≡≠⊸↑)⌜ ∨`∘≠⟜' '⊸/¨𝕩
-    m1∧m2 0⊸«⊸∨<´∘⊐⟜"{;"¨𝕩
+    m2∨m1∧m2 0⊸«⊸∨<´∘⊐⟜"{;"¨𝕩
   } lines
 
   # Alias info data
