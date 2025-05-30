@@ -343,7 +343,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     skipMe ← (⟨⟩≡name)∨¬∧´name∊∾"aA0"+↕¨26‿26‿10
     •Out⍟skipMe "Warning: struct skipped with name """∾name∾""". Struct name invalid."
     fieldLines ← (∧˝"/ "≠⌜' '⊣´¨⊢)⊸/∨`∘≠⟜' '⊸/¨(∧`'}'≠' '⊣´¨⊢)⊸/1↓structLines
-    Warning←{𝕊:•Out {∧´name∊∾"aA0"+↕¨26‿26‿10?𝕨∾" named "∾𝕩∾˜•Repr name;𝕨∾𝕩}´ "Warning: struct"‿" skipped. Structs or enums in struct fields are not allowed. Nested structs will likely be skipped due to empty prefix names."}
+    Warning←{𝕩⊣•Out {∧´name∊∾"aA0"+↕¨26‿26‿10?𝕨∾" named "∾𝕩∾˜•Repr name;𝕨∾𝕩}´ "Warning: struct"‿" skipped. Structs or enums in struct fields are not allowed. Nested structs will likely be skipped due to empty prefix names."}
     skipMe ∨↩ Warning⍟⊢ ∨´∨˝"struct"‿"enum"(≡⌜∨∾¨⟜' '(⊣≡7↑⊢)⌜⊢)fieldLines
 
     fields ← ∾´{ # Get struct fields and count them -> fields finish with ;
