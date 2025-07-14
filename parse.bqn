@@ -226,8 +226,12 @@ ParseHeader ← {𝕨𝕊headerChars:
   # Example:
   # 𝕨 ← "RLAPI" # Functions define (i.e. RLAPI for raylib.h)
   definePrefix ← 𝕨⊣"NO_FUNCTIONS"
-
-  headerLines ← nl((+`×¬)⊸-∘=⊔⊢) wnl⊸≠⊸/ headerChars
+  SingleLineComments ← {0{𝕨𝕊0‿0:𝕨;1⊑𝕩}`(nl=𝕩) ⋈¨ ∧⟜«'/'=𝕩}
+  MultiLineComments ← {((/0≠0∾d)!0=+´d)⊢(«∨»)0∾0≠+`d←-´"/*"‿"*/"⍷¨<𝕩}
+  headerChars wnl⊸≠⊸/↩
+  headerChars ¬∘SingleLineComments⊸/↩
+  headerChars ¬∘MultiLineComments⊸/↩
+  headerLines ← (+`×¬)⊸-∘=⟜nl⊸⊔ headerChars
 
   lines ← ' '⍟((9+@)⊸≡)¨¨ headerLines
 
