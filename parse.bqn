@@ -223,15 +223,14 @@ defMacro ← "#define"
 # Example1: "RLAPI" ParseHeader •FChars "file-name.h"
 # Example2: ParseHeader •FChars "other-file.h"
 ParseHeader ← {𝕨𝕊headerChars:
+  SingleLineComments ← {0{𝕨𝕊0‿0:𝕨;1⊑𝕩}`(nl=𝕩) ⋈¨ ∧⟜«'/'=𝕩}
+  MultiLineComments ← {((/0≠0∾d)!0=+´d)⊢0≠+`d←-˝"/*"‿"*/"≡⌜𝕩}
+  LinesToChars ← {𝕊⁼: (+`×¬)⊸-∘=⟜nl⊸⊔𝕩; 1↓""∾´nl∾¨𝕩}
   # Example:
   # 𝕨 ← "RLAPI" # Functions define (i.e. RLAPI for raylib.h)
   definePrefix ← 𝕨⊣"NO_FUNCTIONS"
-  SingleLineComments ← {0{𝕨𝕊0‿0:𝕨;1⊑𝕩}`(nl=𝕩) ⋈¨ ∧⟜«'/'=𝕩}
-  MultiLineComments ← {((/0≠0∾d)!0=+´d)⊢(«∨»)0∾0≠+`d←-´"/*"‿"*/"⍷¨<𝕩}
-  headerChars wnl⊸≠⊸/↩
-  headerChars ¬∘SingleLineComments⊸/↩
-  headerChars ¬∘MultiLineComments⊸/↩
-  headerLines ← (+`×¬)⊸-∘=⟜nl⊸⊔ headerChars
+
+  headerLines ← nl((+`×¬)⊸-∘=⊔⊢) wnl⊸≠⊸/ headerChars
 
   lines ← ' '⍟((9+@)⊸≡)¨¨ headerLines
 
@@ -337,7 +336,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     }↩
 
     𝕨 ∾⟜< name‿(type⊑typeMapping)‿value‿description
-  }`´(<⟨⟩)⋈↓⟜lines¨/defMacro⊸(⊣≡≠⊸↑)¨∨`∘≠⟜' '⊸/¨lines
+  }`´(<⟨⟩)⋈↓⟜lines¨/defMacro⊸(⊣≡≠⊸↑)¨∨`∘≠⟜' '⊸/¨ {""¨⌾((MultiLineComments𝕩)⊸/)𝕩} ¬∘SingleLineComments⊸/⌾LinesToChars lines
 
   # Structs info data
   structs ← (⊑¨¬⊸/1⊸⊑¨){𝕤
@@ -373,7 +372,7 @@ ParseHeader ← {𝕨𝕊headerChars:
   }¨/{
     [m1,m2]←"typedef struct"‿"struct"(⊣≡≠⊸↑)⌜ ∨`∘≠⟜' '⊸/¨𝕩
     m2∨m1∧m2 0⊸«⊸∨<´∘⊐⟜"{;"¨𝕩
-  } lines
+  } {""¨⌾((MultiLineComments𝕩)⊸/)𝕩} ¬∘SingleLineComments⊸/⌾LinesToChars lines
 
   # Alias info data
   aliases ← {𝕤
@@ -441,7 +440,7 @@ ParseHeader ← {𝕨𝕊headerChars:
 
     # Read enum lines
     # ignore inline enums
-  }¨/("typedef enum {"⊸(⊣≡≠⊸↑)∧∨´∘≠⟜';')¨lines
+  }¨/("typedef enum {"⊸(⊣≡≠⊸↑)∧∨´∘≠⟜';')¨ {""¨⌾((MultiLineComments𝕩)⊸/)𝕩} ¬∘SingleLineComments⊸/⌾LinesToChars lines
 
   callbacks ← {
     RLS ← ∨`∘≠⟜' '⊸/
@@ -470,7 +469,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     # Find callbacks (lines with "typedef ... (* ... )( ... );")
     m1←"typedef"⊸(⊣≡≠⊸↑)¨𝕩
     m1∧{((∨´");"⊸≡˘)∧(∨´")("⊸≡˘)∧(∨´"(*"⊸≡˘))2↕" "⍟(""⊸≡)𝕩}¨𝕩
-  }⊸/lines
+  }∘{""¨⌾((MultiLineComments𝕩)⊸/)𝕩}⊸/lines
 
   functions ← {
     funcSignature ← 𝕩∾⁼˜definePrefix∾' '
@@ -496,7 +495,7 @@ ParseHeader ← {𝕨𝕊headerChars:
 
     # Read function lines
     # Read function line (starting with `define`)
-  }¨definePrefix⊸(⊣≡≠⊸↑)¨⊸/lines
+  }¨definePrefix⊸(⊣≡≠⊸↑)¨∘{""¨⌾((MultiLineComments𝕩)⊸/)𝕩}⊸/lines
 
   defines‿structs‿aliases‿enums‿callbacks‿functions
 }
