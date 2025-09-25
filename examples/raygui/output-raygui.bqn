@@ -484,14 +484,6 @@ guiStyleProp ⇐ ⟨ # NOTE: Used when exporting style as code for convenience
   "u16" # propertyId     # Property identifier
   i     # propertyValue  # Property value
 ⟩
-guiTextStyle ⇐ ⟨ # NOTE: Text style is defined by control
-  u # size         #
-  i # charSpacing  #
-  i # lineSpacing  #
-  i # alignmentH   #
-  i # alignmentV   #
-  i # padding      #
-⟩
 
 guiEnable            ⇐              "GuiEnable"           _R⟨⟩                                            #                                                                # Enable gui controls (global state)
 guiDisable           ⇐              "GuiDisable"          _R⟨⟩                                            #                                                                # Disable gui controls (global state)
