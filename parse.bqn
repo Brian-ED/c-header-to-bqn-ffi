@@ -155,13 +155,13 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
 
   structsDone ← {
     [names,descriptions,fields]←⍉(↕0‿3)∾´structs
-    headers ← (MapStructNames names) ∾⟜" ⇐ ⟨ # "⊸∾¨ descriptions
+    headers ← descriptions∾˜¨ ∾⟜" ⇐ ⟨ # "¨ MapStructNames names
     bodys ← {⟨"⟩"⟩∾˜<˘"  "‿" # "‿"  # "⟨MapStructTypes,⊢,⊢⟩_MetaParse (↕0‿3)∾´𝕩}¨⊢˝¨¨fields
     assembled ← headers <⊸∾¨ bodys
     aliasLines←»⊸∨∘≠⟜' '⊸/¨<˘""‿" ⇐ "‿" # "⟨LowerNames¨MapNames,MapArgTypes,⊢⟩_MetaParse 1‿0‿2⊸⊏˘(↕0‿3)∾´⊢˝¨aliases
-    p←⊑¨⊢˝¨aliases
+    types←LowerNames¨⊑¨⊢˝¨aliases
     "Multiple structs and/or struct aliases have the same name"!∧´∊names∾1⊸⊏˘(↕0‿3)∾´⊢˝¨aliases
-    ∾ ∾∾⟜(<⋈)¨⟜aliasLines⌾(¯1⊸↓)assembled⊔˜+`»+˝p≡⌜names
+    ∾ ∾∾⟜(<⋈)¨⟜aliasLines⌾(¯1⊸↓)assembled⊔˜+`»+˝types(∨´⍷˜)⌜LowerNames¨names
   }
 
   functionsDone ← {
@@ -378,8 +378,8 @@ ParseHeader ← {𝕨𝕊headerChars:
   aliases ← {𝕤
     aliasLine ← 𝕩⊑lines
     desc ← (lines⊑˜𝕩-1)⊣⍟(""⊸≡)○GetDescription aliasLine
-    type‿name ← ' '((¬-˜⊢×·+`»⊸>)∘≠⊔⊢)"typedef "∾⁼⊐⟜'/'⊸↑aliasLine
-    name ∾⟜";"⁼↩
+    name‿type ← ⌽¨(⌊´⊐⟜"* ")⊸(↑⋈↓)⌽ ∾⟜";"⁼ ∨`⌾⌽∘≠⟜' '⊸/ "typedef "∾⁼⊐⟜'/'⊸↑aliasLine
+    type ∨`⌾⌽∘≠⟜' '⊸/↩ # TODO this type should be "normalized"
     type‿name‿desc
   }¨/(∨´∘=⟜';'∧"typedef"⊸(⊣≡≠⊸↑)∧2=(+´' '⊸=>∨`∘=⟜';'))¨lines # Find aliases (lines with "typedef ... ...;")
 
