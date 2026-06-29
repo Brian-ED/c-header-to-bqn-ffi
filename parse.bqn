@@ -91,7 +91,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
   mapArgTypes ← {
     [bqn,c] ← typeReplacements
     {
-      cleaned←constText⊸∾⁼¨⌾((constText⊸(⊣≡≠⊸↑)¨𝕩)⊸/)𝕩
+      cleaned←constText⊸∾⁼¨⌾((constText⊸(≤○≠◶0‿(⊣≡≠⊸↑))¨𝕩)⊸/)𝕩
       [kept,removed] ← 2‿∘⥊⍉Remap˘(↕0‿2)∾´∨`∘∊⟜"[*"⊸{⟨∨`⌾⌽∘≠⟜' '⊸/𝕩/˜¬𝕨 ⋄ SwitchOrder 𝕨/𝕩⟩}¨cleaned
       replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
       removed {""𝕊𝕩:𝕩;'"'≡⊑𝕩?𝕨⊸∾⌾('"'⊸∾⁼)𝕩;'"'∾𝕨∾"""∾"∾𝕩}¨ replaced
@@ -106,7 +106,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
 
   MapStructTypes ← {
     [bqn,c] ← typeReplacements
-    cleaned←constText⊸∾⁼¨⌾((constText⊸(⊣≡≠⊸↑)¨𝕩)⊸/)𝕩
+    cleaned←constText⊸∾⁼¨⌾((constText⊸(≤○≠◶0‿(⊣≡≠⊸↑))¨𝕩)⊸/)𝕩
     [kept,removed] ← 2‿∘⥊⍉Remap˘(↕0‿2)∾´∨`∘∊⟜"[*"⊸{⟨∨`⌾⌽∘≠⟜' '⊸/𝕩/˜¬𝕨 ⋄ SwitchOrder 𝕨/𝕩⟩}¨cleaned
     replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
     removed AddRemoved¨ replaced
@@ -119,7 +119,7 @@ ToFFI ← {𝕨𝕊data: nameMapping ← 𝕨⊣↕2‿0
 
   MapFuncReturnType ← {
     [bqn,c] ← typeReplacements
-    cleaned←𝕩↓˜¨constText≠⊸×constText⊸(⊣≡≠⊸↑)¨𝕩
+    cleaned←𝕩↓˜¨constText≠⊸×constText⊸(≤○≠◶0‿(⊣≡≠⊸↑))¨𝕩
     [kept,removed] ← 2‿∘⥊⍉Remap˘(↕0‿2)∾´ ∨`∘∊⟜"[*"⊸(¬⊸/∾⟜" "⁼⍟(" "≡¯1⊸↑)⊸⋈SwitchOrder∘/)¨cleaned
     replaced ← kept LowerNames∘(MapNames⌾⋈)∘⊣⍟(0⊸≡)¨(c⊐kept)⊏bqn∾0
     {'('∾𝕩∾')'}⍟(∨´"∾⊣"⊸∊)¨"ptr⊣"⊸∾⍟(("ustr"≡¯4⊸↑)∨"str"≡¯3⊸↑)¨ removed AddRemoved¨ replaced
@@ -250,7 +250,7 @@ ParseHeader ← {𝕨𝕊headerChars:
       "'"≡1↑args?
         char
     ;
-      "CLITERAL(Color)"(⊣≡≠⊸↑)args?
+      "CLITERAL(Color)"(≤○≠◶0‿(⊣≡≠⊸↑))args?
         color
     ;
       ⊑"0123456789"∊˜1↑args?
@@ -336,7 +336,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     }↩
 
     𝕨 ∾⟜< name‿(type⊑typeMapping)‿value‿description
-  }`´(<⟨⟩)⋈↓⟜lines¨/defMacro⊸(⊣≡≠⊸↑)¨∨`∘≠⟜' '⊸/¨ {""¨⌾((MultiLineComments𝕩)⊸/)𝕩} ¬∘SingleLineComments⊸/⌾LinesToChars lines
+  }`´(<⟨⟩)⋈↓⟜lines¨/defMacro⊸(≤○≠◶0‿(⊣≡≠⊸↑))¨∨`∘≠⟜' '⊸/¨ {""¨⌾((MultiLineComments𝕩)⊸/)𝕩} ¬∘SingleLineComments⊸/⌾LinesToChars lines
 
   # Structs info data
   structs ← (⊑¨¬⊸/1⊸⊑¨){𝕤
@@ -370,7 +370,7 @@ ParseHeader ← {𝕨𝕊headerChars:
     # ending with "} ... ;"
     # i.e. excluding "typedef struct rAudioBuffer rAudioBuffer;" -> Typedef and forward declaration only
   }¨/{
-    [m1,m2]←"typedef struct"‿"struct"(⊣≡≠⊸↑)⌜ ∨`∘≠⟜' '⊸/¨𝕩
+    [m1,m2]←"typedef struct"‿"struct"(≤○≠◶0‿(⊣≡≠⊸↑))⌜ ∨`∘≠⟜' '⊸/¨𝕩
     m2∨m1∧m2 0⊸«⊸∨<´∘⊐⟜"{;"¨𝕩
   } {""¨⌾((MultiLineComments𝕩)⊸/)𝕩} ¬∘SingleLineComments⊸/⌾LinesToChars lines
 
@@ -381,14 +381,14 @@ ParseHeader ← {𝕨𝕊headerChars:
     name‿type ← ⌽¨(⌊´⊐⟜"* ")⊸(↑⋈↓)⌽ ∾⟜";"⁼ ∨`⌾⌽∘≠⟜' '⊸/ "typedef "∾⁼⊐⟜'/'⊸↑aliasLine
     type ∨`⌾⌽∘≠⟜' '⊸/↩ # TODO this type should be "normalized"
     type‿name‿desc
-  }¨/(∨´∘=⟜';'∧"typedef"⊸(⊣≡≠⊸↑)∧2=(+´' '⊸=>∨`∘=⟜';'))¨lines # Find aliases (lines with "typedef ... ...;")
+  }¨/(∨´∘=⟜';'∧"typedef"⊸(≤○≠◶0‿(⊣≡≠⊸↑))∧2=(+´' '⊸=>∨`∘=⟜';'))¨lines # Find aliases (lines with "typedef ... ...;")
 
   enums ← {
     # Parse enum description
     # NOTE: This is not necessarily from the line immediately before,
     # some of the enums have extra lines between the "description"
     # and the typedef enum
-    desc ← GetDescription ⟨⟩⊸≡◶⊑‿""(∧`("// "≡3⊸↑)¨)⊸/⌾⌽𝕩↑lines
+    desc ← GetDescription ⟨⟩⊸≡◶⊑‿""(∧`"// "⊸(≤○≠◶0‿(⊣≡≠⊸↑))¨)⊸/⌾⌽𝕩↑lines
 
     # Parse enum value line, possible options:
     #ENUM_VALUE_NAME,
@@ -428,19 +428,19 @@ ParseHeader ← {𝕨𝕊headerChars:
       valueDesc ← GetDescription 𝕩
 
       valueName‿value‿valueDesc
-    }¨((≥⟜'A'∧'Z'⊸≥)∘⊑¨1↑¨⊢)⊸/ ∨`∘≠⟜' '⊸/¨(∧`'}'≠·⊑¨1↑¨⊢)⊸/lines↓˜1+𝕩
+    }¨((≥⟜'A'∧'Z'⊸≥)∘⊑¨1↑¨⊢)⊸/ ∨`∘≠⟜' '⊸/¨(∧`'}'≠' '⊣´¨⊢)⊸/lines↓˜1+𝕩
 
     values {𝕩=@?𝕨+1;𝕩}`⌾(1⊸⊑¨)↩
     values ('-'⍟('¯'⊸≡)¨•Repr)¨⌾(1⊸⊑¨)↩
 
     # Get enum name from typedef
-    name←"} "∾⁼⊐⟜';'⊸↑ (⊑∘⊐⟜'}'·∾´1↑¨⊢)⊸⊑lines↓˜1+𝕩
+    name←"} "∾⁼⊐⟜';'⊸↑ (⊑∘⊐⟜'}' ' '⊣´¨⊢)⊸⊑lines↓˜1+𝕩
 
     name‿desc‿values
 
     # Read enum lines
     # ignore inline enums
-  }¨/("typedef enum {"⊸(⊣≡≠⊸↑)∧∨´∘≠⟜';')¨ {""¨⌾((MultiLineComments𝕩)⊸/)𝕩} ¬∘SingleLineComments⊸/⌾LinesToChars lines
+  }¨/("typedef enum {"⊸(≤○≠◶0‿(⊣≡≠⊸↑))∧∨´∘≠⟜';')¨ {""¨⌾((MultiLineComments𝕩)⊸/)𝕩} ¬∘SingleLineComments⊸/⌾LinesToChars lines
 
   callbacks ← {
     RLS ← ∨`∘≠⟜' '⊸/
@@ -467,7 +467,7 @@ ParseHeader ← {𝕨𝕊headerChars:
   }¨{
     # Read callback lines
     # Find callbacks (lines with "typedef ... (* ... )( ... );")
-    m1←"typedef"⊸(⊣≡≠⊸↑)¨𝕩
+    m1←"typedef"⊸(≤○≠◶0‿(⊣≡≠⊸↑))¨𝕩
     m1∧{((∨´");"⊸≡˘)∧(∨´")("⊸≡˘)∧(∨´"(*"⊸≡˘))2↕" "⍟(""⊸≡)𝕩}¨𝕩
   }∘{""¨⌾((MultiLineComments𝕩)⊸/)𝕩}⊸/lines
 
@@ -495,7 +495,7 @@ ParseHeader ← {𝕨𝕊headerChars:
 
     # Read function lines
     # Read function line (starting with `define`)
-  }¨definePrefix⊸(⊣≡≠⊸↑)¨∘{""¨⌾((MultiLineComments𝕩)⊸/)𝕩}⊸/lines
+  }¨definePrefix⊸(≤○≠◶0‿(⊣≡≠⊸↑))¨∘{""¨⌾((MultiLineComments𝕩)⊸/)𝕩}⊸/lines
 
   defines‿structs‿aliases‿enums‿callbacks‿functions
 }
