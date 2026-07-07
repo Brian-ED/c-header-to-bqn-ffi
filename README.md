@@ -47,6 +47,19 @@ Multiple options are supported for enums:
 - If value is not provided, `lastValue + 1` is assigned
 - Value description is optional
 
+### Extra constraints
+"unsigned" and "const" parameter parsing is inconsistent.
+
+Not supported:
+- Nested structs
+- Function pointers as structs
+- Expression macros
+- Global variables
+- Multiline comments
+- Multiline function declarations
+- Some aliases
+- Some typedefs that do not have a corresponding struct.
+
 ## TODO list
 - Work on simplifying parse.bqn. It can be improved a ton.
 - Work on removing some constraints.
