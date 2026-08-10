@@ -450,18 +450,6 @@ typedef struct GuiStyleProp {
     int propertyValue;          // Property value
 } GuiStyleProp;
 
-/*
-// Controls text style -NOT USED-
-// NOTE: Text style is defined by control
-typedef struct GuiTextStyle {
-    unsigned int size;
-    int charSpacing;
-    int lineSpacing;
-    int alignmentH;
-    int alignmentV;
-    int padding;
-} GuiTextStyle;
-*/
 
 // Gui control state
 typedef enum {
