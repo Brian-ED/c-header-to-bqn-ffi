@@ -41,7 +41,7 @@ str  ⇐ "*i8:c8"
 uStr ⇐ "*u8:c8"
 ptr  ⇐ "*"
 
-pathToBinary ⇐ "/home/brian/Persinal/Scripts/APL/c-header-to-bqn-ffi/examples/rlgl"
+pathToBinary ⇐ "somePath"
 r ⇐ 0 MakeImporter pathToBinary
 
 ##################################
