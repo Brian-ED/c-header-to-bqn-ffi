@@ -41,7 +41,9 @@ str  ⇐ "*i8:c8"
 uStr ⇐ "*u8:c8"
 ptr  ⇐ "*"
 
-pathToBinary ⇐ ⊑•args
+pathToBinary ⇐ ⊑•args⍟(0=≠)⟨
+  #INSERT-CUSTOM-RAYLIB-PATH-HERE
+⟩
 r ⇐ 0 MakeImporter pathToBinary
 
 ##################################

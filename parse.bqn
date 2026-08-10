@@ -1,9 +1,12 @@
 ⟨
-  HeaderToFFI  # Read string 𝕩 and optional function prefix 𝕨, outputs metaprogrammed file as string
-  ToFFI        # turns header data from ParseHeader into ffi file characters
-  ParseHeader  # Read string 𝕩 and optional function prefix 𝕨, outputs header data
-  ToPrettyJson # Read header data from ParseHeader and makes a pretty json file
-  SetPath      # Set the path of the resulting FFI script from ToFFI
+  HeaderToFFI         # Read string 𝕩 and optional function prefix 𝕨, outputs metaprogrammed file as string.
+  ToFFI               # turns header data from ParseHeader into ffi file characters.
+  ParseHeader         # Read string 𝕩 and optional function prefix 𝕨, outputs header data.
+  ToPrettyJson        # Read header data from ParseHeader and makes a pretty json file.
+  SetPath             # Set the library path of the resulting FFI script from ToFFI,
+  SetPathResolving    #   or instead set the path to be arbitrary code.
+  defaultPath         # The default path for if SetPath and SetPathResolver are not used.
+  defaultPathResolver # The default path resolver for if SetPath and SetPathResolver are not used.
 ⟩⇐
 
 ⟨ParseJSON⇐Parse⟩ ← •Import "json.bqn"
@@ -70,9 +73,15 @@ typeReplacements ← ⍉shortendStructNames∾[
   " "      ‿"void"
 ]
 
+defaultPathResolver ⇐ default ← "⊑•args"
+defaultPath ⇐ '"'∾default∾'"'
+
 SetPath ← {path𝕊ffi:
-  default ← "⊑•args" # defaultPathDefinition
-  (⊐⟜1 default⍷ffi)(↑∾'"'∾path∾'"'∾default∾⁼↓)ffi
+  (1⊐˜default⍷ffi)(↑∾'"'∾path∾'"'∾default∾⁼↓)ffi
+}
+
+SetPathResolving ← {path𝕊ffi:
+  (1⊐˜default⍷ffi)(↑∾path∾default∾⁼↓)ffi
 }
 
 # turns header data from ParseHeader into ffi file characters
@@ -428,7 +437,7 @@ ParseHeader ← {𝕨𝕊headerChars:
       valueDesc ← GetDescription 𝕩
 
       valueName‿value‿valueDesc
-    }¨((≥⟜'A'∧'Z'⊸≥)∘⊑¨1↑¨⊢)⊸/ ∨`∘≠⟜' '⊸/¨(∧`'}'≠' '⊣´¨⊢)⊸/lines↓˜1+𝕩
+    }¨((≥⟜'A'∧'Z'⊸≥)∘⊑⟨@⟩⍟(0≡≠))¨⊸/ ∨`∘≠⟜' '⊸/¨(∧`'}'≠' '⊣´¨⊢)⊸/lines↓˜1+𝕩
 
     values {𝕩=@?𝕨+1;𝕩}`⌾(1⊸⊑¨)↩
     values ('-'⍟('¯'⊸≡)¨•Repr)¨⌾(1⊸⊑¨)↩
