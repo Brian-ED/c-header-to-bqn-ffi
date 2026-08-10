@@ -41,7 +41,7 @@ str  ⇐ "*i8:c8"
 uStr ⇐ "*u8:c8"
 ptr  ⇐ "*"
 
-pathToBinary ⇐ "/mnt/linux-mint/home/brian/Persinal/Scripts/APL/c-header-to-bqn-ffi/examples/exotic"
+pathToBinary ⇐ "somePath"
 r ⇐ 0 MakeImporter pathToBinary
 
 ##################################
