@@ -4,7 +4,7 @@
   ParseHeader         # Read string 𝕩 and optional function prefix 𝕨, outputs header data.
   ToPrettyJson        # Read header data from ParseHeader and makes a pretty json file.
   SetPath             # Set the library path of the resulting FFI script from ToFFI,
-  SetPathResolving    #   or instead set the path to be arbitrary code.
+  SetPathResolver     #   or instead set the path to be arbitrary code.
   defaultPath         # The default path for if SetPath and SetPathResolver are not used.
   defaultPathResolver # The default path resolver for if SetPath and SetPathResolver are not used.
 ⟩⇐
@@ -80,7 +80,7 @@ SetPath ← {path𝕊ffi:
   (1⊐˜default⍷ffi)(↑∾'"'∾path∾'"'∾default∾⁼↓)ffi
 }
 
-SetPathResolving ← {path𝕊ffi:
+SetPathResolver ← {path𝕊ffi:
   (1⊐˜default⍷ffi)(↑∾path∾default∾⁼↓)ffi
 }
 
