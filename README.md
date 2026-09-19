@@ -3,7 +3,7 @@ parse.bqn is the main file, used on a header file to autogenerate bqn ffi code.
 
 For how to use, you can look in examples. You may look at comments in parse.bqn for how each function works.
 
-For documentation on FFI in BQN, look in https://mlochbaum.github.io/BQN/spec/system.html#foreign-function-interface
+For documentation on FFI in BQN, look in https://mlochbaum.github.io/BQN/spec/system.html#foreign-function-interface-ffi
 
 # Output ffi file
 The outputted bqn code has some special code alongside your ffi functions.
